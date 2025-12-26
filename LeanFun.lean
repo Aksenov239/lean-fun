@@ -1,1 +1,2 @@
 import LeanFun.Basic
+import LeanFun.Coloring.exists_coloring_c3_simple
