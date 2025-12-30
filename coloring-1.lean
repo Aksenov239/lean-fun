@@ -26,8 +26,8 @@ theorem exists_coloring_c3
     (D : ℕ)
     (hD : (2 : ℕ) ^ (3 : ℕ) ≤ D)
     (hdeg : ∀ v : V, G.degree v ≤ D) :
-    let c : ℕ := 3
-    let N : ℕ := D * (c - 1) + 1
+ --   let c : ℕ := 3
+    let N : ℕ := D * 2 + 1
     ∃ f : V → {n : ℕ // n ∈ Set.Icc (1 : ℕ) N},
       (∀ ⦃u v : V⦄, G.Adj u v → f u ≠ f v) ∧
       (∀ v : V,
