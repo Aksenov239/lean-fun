@@ -25,7 +25,8 @@ theorem theorem_1_exponential_expansion
   (hb : 2 ≤ b) :
   ∃ (G : Set (FreeAbelianMonoid n)) (D : ℕ),
     (∀ s : ℕ,
-      (Ball s G).ncard >= Real.rpow (b : ℝ) ((s : ℝ) / (n * (b - 1)) - 1)) ∧
+      let r := Int.toNat <| Int.floor <| Real.rpow (b : ℝ) ((s : ℝ) / (n * (b - 1)) - 1)
+      (Ball r (A n) ⊆ (Ball s G))) ∧
     (∀ r : ℕ, 2 ≤ r →
       (G ∩ (Ball r (A n))).ncard ≤ D * n * (Real.log r)) :=
     sorry
@@ -35,5 +36,7 @@ theorem theorem_2_quasi_exponential_expansion
   (G : Set (FreeAbelianMonoid n))
   (c q : ℝ) :
   (∀ (r : ℕ), (G ∩ (Ball r (A n))).ncard ≤ c * (Real.rpow (Real.log ((Real.exp 1) + r)) q)) →
-    (∃ (K : ℕ), ∀ (s : ℕ), (Ball s G).ncard ≤ Real.exp (K * s * (Real.log s))) :=
+    (∃ (K : ℕ), ∀ (s : ℕ),
+      let r := Int.toNat <| Int.floor <| Real.exp (K * s * (Real.log s))
+      Ball r (A n) ⊆ Ball s G) :=
     sorry
