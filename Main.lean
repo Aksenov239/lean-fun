@@ -1,5 +1,0 @@
-import LeanFun
-import LeanFun.Coloring.exists_coloring_c3_simple
-import LeanFun.Coloring.C3Medium.exists_coloring_c3_medium
-
--- Entry point module for the LeanFun project.
