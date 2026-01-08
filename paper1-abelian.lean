@@ -14,7 +14,7 @@ theorem lemma_1_balls_inclusion
   (n b : ℕ)
   (hb : 2 ≤ b) :
   ∃ (G : Set (FreeAbelianMonoid n)) (D : ℕ),
-    (∀ (r s : ℕ), (2 ≤ r) ∧ (s ≥ n * (b - 1) * ((Real.log r) / (Real.log b) + 1)) →
+    (∀ (r s : ℕ), (b ^ 2 ≤ r) ∧ (s ≥ n * (b - 1) * ((Real.log r) / (Real.log b) + 1)) →
       (Ball r (A n)) ⊆ (Ball s G)) ∧
     (∀ r : ℕ, 2 ≤ r →
       (G ∩ (Ball r (A n))).ncard ≤ D * n * (Real.log r)) :=
@@ -24,7 +24,7 @@ theorem theorem_1_exponential_expansion
   (n b : ℕ)
   (hb : 2 ≤ b) :
   ∃ (G : Set (FreeAbelianMonoid n)) (D : ℕ),
-    (∀ s : ℕ,
+    (∀ s : ℕ, (s ≥ 3 * n * (b - 1)) →
       let r := Int.toNat <| Int.floor <| Real.rpow (b : ℝ) ((s : ℝ) / (n * (b - 1)) - 1)
       (Ball r (A n) ⊆ (Ball s G))) ∧
     (∀ r : ℕ, 2 ≤ r →
