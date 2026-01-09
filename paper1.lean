@@ -50,7 +50,7 @@ theorem theorem_3_polynomial_density
   (n k : ℕ) (hk : k ≥ 2) :
   ∃ (G : Set (FreeAbelianMonoid n)),
     (∀ (r : ℕ), (G ∩ (Ball r (A n))).ncard ≤ n * (Real.rpow r ((1 : ℝ) / k))) ∧
-    (∀ (s : ℕ), (isWarring k s) → (∀ (r : ℕ), (Ball r (A n)) ⊆ (Ball s (G ∪ (A n))))) :=
+    (∀ (g : ℕ), (isWarring k g) → (∀ (r : ℕ), (Ball r (A n)) ⊆ (Ball (n * g) (G ∪ (A n))))) :=
     sorry
 
 end abelian
