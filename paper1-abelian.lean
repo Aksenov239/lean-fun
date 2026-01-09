@@ -40,3 +40,13 @@ theorem theorem_2_quasi_exponential_expansion
       let r := Int.toNat <| Int.floor <| Real.exp (K * s * (Real.log s))
       Ball r (A n) ⊆ Ball s G) :=
     sorry
+
+def isWarring (k : ℕ) (n : ℕ) : Prop :=
+  ∀ x : ℕ, ∃ l : List ℕ, l.length ≤ n ∧ (l.map (fun (y : ℕ) => y ^ k)).sum = x
+
+theorem theorem_3_polynomial_density
+  (n k : ℕ) (hk : k ≥ 2) :
+  ∃ (G : Set (FreeAbelianMonoid n)),
+    (∀ (r : ℕ), (G ∩ (Ball r (A n))).ncard ≤ n * (Real.rpow r ((1 : ℝ) / k))) ∧
+    (∀ (s : ℕ), (isWarring k s) → (∀ (r : ℕ), (Ball r (A n)) ⊆ (Ball s G))) :=
+    sorry
