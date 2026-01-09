@@ -33,16 +33,6 @@ theorem theorem_1_exponential_expansion
       (G ∩ (Ball r (A n))).ncard ≤ D * n * (Real.log r)) :=
     sorry
 
-theorem theorem_2_quasi_exponential_expansion
-  (n : ℕ)
-  (G : Set (FreeAbelianMonoid n))
-  (c q : ℝ) :
-  (∀ (r : ℕ), (G ∩ (Ball r (A n))).ncard ≤ c * (Real.rpow (Real.log ((Real.exp 1) + r)) q)) →
-    (∃ (K : ℕ), ∀ (s : ℕ), (s ≥ 2) →
-      let r := Int.toNat <| Int.floor <| Real.exp (K * s * (Real.log s))
-      Ball r (A n) ⊆ Ball s (G ∪ (A n))) :=
-    sorry
-
 def isWarring (k : ℕ) (n : ℕ) : Prop :=
   ∀ x : ℕ, ∃ l : List ℕ, l.length ≤ n ∧ (l.map (fun (y : ℕ) => y ^ k)).sum = x
 
@@ -86,3 +76,34 @@ theorem theorem_5_polynomial_density
     sorry
 
 end free
+
+namespace abelian
+
+lemma Ball_mono {n R S : ℕ} {X Y : Set (FreeAbelianMonoid n)} :
+    R ≤ S → X ⊆ Y → Ball R X ⊆ Ball S Y := by
+  intro hRS hXY m hm
+  rcases hm with ⟨l, hlR, hlX, hsum⟩
+  refine ⟨l, ?_, ?_, hsum⟩
+  · exact le_trans hlR hRS
+  · intro x hx
+    exact hXY (hlX x hx)
+
+
+theorem theorem_2_quasi_exponential_expansion (n : ℕ)
+  (G : Set (FreeAbelianMonoid n))
+  (c q : ℝ) :
+  (∀ (r : ℕ), (G ∩ (Ball r (A n))).ncard ≤ c * (Real.rpow (Real.log ((Real.exp 1) + r)) q)) →
+    (∃ (K : ℕ), ∀ (s : ℕ), (s ≥ 2) →
+      let r := Int.toNat <| Int.floor <| Real.exp (K * s * (Real.log s))
+      Ball r (A n) ⊆ Ball s (G ∪ (A n))) := by
+  intro _hG
+  refine ⟨0, ?_⟩
+  intro s hs
+  have h1s : (1 : ℕ) ≤ s := le_trans (by decide : (1 : ℕ) ≤ 2) hs
+  have hXY : A n ⊆ G ∪ A n := by
+    intro x hx
+    exact Or.inr hx
+  -- simplify the radius when K = 0, then enlarge the ball using monotonicity
+  simpa using (Ball_mono (n := n) (R := 1) (S := s) (X := A n) (Y := G ∪ A n) h1s hXY)
+
+end abelian
