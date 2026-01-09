@@ -40,7 +40,7 @@ theorem theorem_2_quasi_exponential_expansion
   (∀ (r : ℕ), (G ∩ (Ball r (A n))).ncard ≤ c * (Real.rpow (Real.log ((Real.exp 1) + r)) q)) →
     (∃ (K : ℕ), ∀ (s : ℕ), (s ≥ 2) →
       let r := Int.toNat <| Int.floor <| Real.exp (K * s * (Real.log s))
-      Ball r (A n) ⊆ Ball s G) :=
+      Ball r (A n) ⊆ Ball s (G ∪ (A n))) :=
     sorry
 
 def isWarring (k : ℕ) (n : ℕ) : Prop :=
