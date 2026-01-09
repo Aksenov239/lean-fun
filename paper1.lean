@@ -63,6 +63,14 @@ def Ball {n : ℕ} (R : ℕ) (X : Set (FreeMonoid (Fin n))) : Set (FreeMonoid (F
 def A (n : ℕ) : Set (FreeMonoid (Fin n)) :=
   { [i] | i : Fin n}
 
+theorem theorem_4_logarithmic_density_simple
+  (n : ℕ) (hn : n ≥ 2)
+  (G : Set (FreeMonoid (Fin n)))
+  (c : ℕ)
+  (hG : ∀ l : ℕ, l ≥ 2 → (Set.ncard { x ∈ G | x.length = l } ≤ c)) :
+    ∃ (d : ℕ), ∀ (s : ℕ), ¬ (Ball (d * s) (A n) ⊆ Ball s (G ∪ (A n))) :=
+    sorry
+
 theorem theorem_4_logarithmic_density
   (n : ℕ) (hn : n ≥ 2)
   (G : Set (FreeMonoid (Fin n)))
