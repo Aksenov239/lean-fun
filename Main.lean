@@ -166,7 +166,7 @@ theorem exists_bipartite_counterexample_Lin_trivial
               ¬ ∃ (y : Coloring (V := V) C),
                   IsListColoring (V := V) (C := C) L y ∧
                   IsProper (G := G) y ∧
-                  FNondegenerate (G := G) (V := V) (C := C) y (Lin c)) :=
+                  FNondegenerate (G := G) (V := V) (C := C) y (Lin c))  :=
 by
   -- proof not provided (formalization only)
   sorry
