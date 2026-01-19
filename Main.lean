@@ -123,6 +123,13 @@ def revPrefixPerm (n j : ℕ) : Sn n := by
 noncomputable def s (n : ℕ) : Sn n :=
   revPrefixPerm n n
 
+theorem Antiufeev_lemma1_1
+    (n j : ℕ) (hn : 3 ≤ n) (hj2 : 2 ≤ j) (hj : j ≤ (n + 1) / 2)
+    (π : Sn n) :
+    let ξ : Sn n := π * revPrefixPerm n j
+    (Γ n).dist π (ξ * (r n) ^ ((j / 2) - 1)) = j * (j - 1) - 1 :=
+    sorry
+
 /--
 **Lemma 1 (Antiufeev).** :contentReference[oaicite:2]{index=2}
 
