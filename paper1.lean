@@ -64,11 +64,6 @@ theorem theorem_3_polynomial_density
     (∀ (g : ℕ), (isWarring k g) → (∀ (r : ℕ), (Ball r (A n)) ⊆ (Ball (n * g) (G ∪ (A n))))) :=
     sorry
 
-theorem theorem_4_polynomial_expansion
-  (b : ℕ)
-  (hb : 2 ≤ ℕ) :
-  let M :=
-
 end abelian
 
 namespace free
