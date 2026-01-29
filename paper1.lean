@@ -22,25 +22,36 @@ theorem lemma_1_balls_inclusion
       (G ∩ (Ball r (A n))).ncard ≤ D * n * (Real.log r)) :=
   sorry
 
-theorem theorem_1_exponential_expansion
+/-- The macro set
+`M = { a_i^(b^j) : i = 1..n, j ≥ 1 }`,
+modeled as multisets with `b^j` copies of generator `i`. -/
+def MacroSet (n b : ℕ) : Set (FreeAbelianMonoid n) :=
+  { m | ∃ i : Fin n, ∃ j : ℕ, 1 ≤ j ∧ m = Multiset.replicate (b ^ j) i }
+
+theorem theorem_1_place_notation_exponential_expansion
   (n b : ℕ)
   (hb : 2 ≤ b) :
-  ∃ (G : Set (FreeAbelianMonoid n)) (D : ℕ),
-    (∀ s : ℕ, (s ≥ 3 * n * (b - 1)) →
-      let r := Int.toNat <| Int.floor <| Real.rpow (b : ℝ) ((s : ℝ) / (n * (b - 1)) - 1)
-      (Ball r (A n) ⊆ (Ball s G))) ∧
-    (∀ r : ℕ, 2 ≤ r →
-      (G ∩ (Ball r (A n))).ncard ≤ D * n * (Real.log r)) :=
-    sorry
+  let M := MacroSet n b
+  (∃ (d1 d2 : ℕ), ∀ (x : ℕ), (x ≥ 2) → 0 < d1 ∧ 0 < d2
+      ∧ d1 * (Real.log x) ≤ (M ∩ (Ball x (A n))).ncard
+      ∧ (M ∩ (Ball x (A n))).ncard ≤ d2 * (Real.log x))
+    ∧
+    ∀ s : ℕ, s ≥ 1 → (
+      let r1 := Int.toNat <| Int.ceil <| Real.rpow b ((s : ℝ) / (n * (b - 1)) - 1)
+      (Ball r1 (A n) ⊆ (Ball s (M ∪ (A n))))
+      ∧
+      let r2 := 1 + n * b * (Int.toNat <| Int.floor <| Real.rpow b ((s : ℝ) / (n * (n - 1)) - 1))
+      ¬ (Ball r2 (A n) ⊆ (Ball s (M ∪ (A n))))) :=
+      sorry
 
 theorem theorem_2_quasi_exponential_expansion
   (n : ℕ)
   (G : Set (FreeAbelianMonoid n))
   (c q : ℝ) :
   (∀ (r : ℕ), (G ∩ (Ball r (A n))).ncard ≤ c * (Real.rpow (Real.log ((Real.exp 1) + r)) q)) →
-    (∃ (K : ℕ), ∀ (s : ℕ), (s ≥ 2) →
-      let r := Int.toNat <| Int.floor <| Real.exp (K * s * (Real.log s))
-      Ball r (A n) ⊆ Ball s (G ∪ (A n))) :=
+    (∃ (K : ℕ), ∀ (s : ℕ), (s ≥ 2) → ((K ≥ 0) ∧
+      let r := 1 + Int.toNat <| Int.floor <| Real.exp (K * s * (Real.log s))
+      ¬ (Ball r (A n) ⊆ Ball s (G ∪ (A n))))) :=
     sorry
 
 def isWarring (k : ℕ) (n : ℕ) : Prop :=
@@ -52,6 +63,11 @@ theorem theorem_3_polynomial_density
     (∀ (r : ℕ), (G ∩ (Ball r (A n))).ncard ≤ n * (Real.rpow r ((1 : ℝ) / k))) ∧
     (∀ (g : ℕ), (isWarring k g) → (∀ (r : ℕ), (Ball r (A n)) ⊆ (Ball (n * g) (G ∪ (A n))))) :=
     sorry
+
+theorem theorem_4_polynomial_expansion
+  (b : ℕ)
+  (hb : 2 ≤ ℕ) :
+  let M :=
 
 end abelian
 
