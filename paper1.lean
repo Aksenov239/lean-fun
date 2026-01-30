@@ -30,9 +30,10 @@ def MacroSet (n b : ℕ) : Set (FreeAbelianMonoid n) :=
 
 theorem theorem_1_place_notation_exponential_expansion
   (n b : ℕ)
+  (h1 : 1 ≤ n)
   (hb : 2 ≤ b) :
   let M := MacroSet n b
-  (∃ (d1 d2 : ℕ), ∀ (x : ℕ), (x ≥ 2) → 0 < d1 ∧ 0 < d2
+  (∃ (d1 d2 : ℕ), ∀ (x : ℕ), (x ≥ b) → 0 < d1 ∧ 0 < d2
       ∧ d1 * (Real.log x) ≤ (M ∩ (Ball x (A n))).ncard
       ∧ (M ∩ (Ball x (A n))).ncard ≤ d2 * (Real.log x))
     ∧
@@ -40,12 +41,13 @@ theorem theorem_1_place_notation_exponential_expansion
       let r1 := Int.toNat <| Int.ceil <| Real.rpow b ((s : ℝ) / (n * (b - 1)) - 1)
       (Ball r1 (A n) ⊆ (Ball s (M ∪ (A n))))
       ∧
-      let r2 := 1 + n * b * (Int.toNat <| Int.floor <| Real.rpow b ((s : ℝ) / (n * (n - 1)) - 1))
+      let r2 := 1 + n * b * (Int.toNat <| Int.floor <| Real.rpow b ((s : ℝ) / (n * (b - 1))))
       ¬ (Ball r2 (A n) ⊆ (Ball s (M ∪ (A n))))) :=
       sorry
 
 theorem theorem_2_quasi_exponential_expansion
   (n : ℕ)
+  (h1 : 1 ≤ n)
   (G : Set (FreeAbelianMonoid n))
   (c q : ℝ) :
   (∀ (r : ℕ), (G ∩ (Ball r (A n))).ncard ≤ c * (Real.rpow (Real.log ((Real.exp 1) + r)) q)) →
@@ -63,6 +65,15 @@ theorem theorem_3_polynomial_density
     (∀ (r : ℕ), (G ∩ (Ball r (A n))).ncard ≤ n * (Real.rpow r ((1 : ℝ) / k))) ∧
     (∀ (g : ℕ), (isWarring k g) → (∀ (r : ℕ), (Ball r (A n)) ⊆ (Ball (n * g) (G ∪ (A n))))) :=
     sorry
+
+def IsThetaFromOne (f g : ℕ → ℝ) : Prop :=
+  ∃ C₁ C₂ : ℝ,
+    0 < C₁ ∧ 0 < C₂ ∧
+    ∀ s : ℕ, 1 ≤ s → C₁ * g s ≤ f s ∧ f s ≤ C₂ * g s
+
+-- theorem theorem_4_double_logarithmic
+--   (b: ℕ)
+
 
 end abelian
 
