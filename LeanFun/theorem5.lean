@@ -34,10 +34,11 @@ theorem theorem5_upper_bound_neg (b : ℕ) (hb : 2 ≤ b) :
   (∃ C₂ B : ℝ,
       0 < C₂ ∧
       (∀ (s : ℕ), (s ≥ B) →
-      let rs := Real.rpow s ((b : ℝ) / (b - 1))
-      ¬ (Ball (1 + Int.toNat <| Int.floor <| C₂ * rs)) (A 1) ⊆ Ball s (M ∪ (A 1)))
+        let rs := Real.rpow s ((b : ℝ) / (b - 1))
+        ¬ (Ball (1 + Int.toNat <| Int.floor <| C₂ * rs) (A 1) ⊆ Ball s (M ∪ (A 1))))
     ) := by
-    sorry
+  simpa using theorem5_upper_bound (b := b) hb
+
 
 theorem theorem5
   (b : ℕ)
