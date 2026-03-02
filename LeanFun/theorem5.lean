@@ -2981,8 +2981,544 @@ theorem theorem5_simplification (n : ℕ) (hn : 2 ≤ n) :
 
 
 
-theorem theorem5
-    (n : ℕ) (hn : 2 ≤ n) :
+theorem theorem5_eventually_exp_le_pow_sqrt (K : ℕ) (hKpos : 0 < K) :
+    ∃ c : ℝ, 0 < c ∧
+      (∀ᶠ s : ℕ in atTop,
+        Real.exp (c * Real.sqrt (s : ℝ)) ≤ ((2 ^ (Nat.sqrt (s / K)) : ℕ) : ℝ)) := by
+  classical
+  -- Choose an explicit constant.
+  refine ⟨(Real.log 2) / (4 * Real.sqrt (K : ℝ)), ?_, ?_⟩
+  ·
+    have hlog2 : 0 < Real.log 2 := by
+      have : (1 : ℝ) < (2 : ℝ) := by norm_num
+      simpa using Real.log_pos this
+    have hKposR : (0 : ℝ) < (K : ℝ) := by
+      exact_mod_cast hKpos
+    have hsqrtK : 0 < Real.sqrt (K : ℝ) := by
+      simpa using Real.sqrt_pos.2 hKposR
+    have hden : 0 < 4 * Real.sqrt (K : ℝ) := by
+      nlinarith
+    exact div_pos hlog2 hden
+  ·
+    -- We'll prove the inequality for all sufficiently large `s`.
+    refine Filter.eventually_atTop.2 ?_
+    refine ⟨4 * K, ?_⟩
+    intro s hs
+    let m : ℕ := Nat.sqrt (s / K)
+
+    -- Rewrite the RHS as a real exponential.
+    have hRexp : ((2 ^ Nat.sqrt (s / K) : ℕ) : ℝ) = Real.exp (m * Real.log 2) := by
+      have hcast : ((2 ^ m : ℕ) : ℝ) = (2 : ℝ) ^ m := by
+        simpa using (Nat.cast_pow (m := 2) (n := m) : ((2 ^ m : ℕ) : ℝ) = (2 : ℝ) ^ m)
+      have hexp : Real.exp (m * Real.log 2) = (2 : ℝ) ^ m := by
+        have := (Real.exp_nat_mul (Real.log 2) m)
+        have hpos2 : (0 : ℝ) < 2 := by norm_num
+        -- `exp (m * log 2) = (exp (log 2))^m = 2^m`
+        simpa [mul_comm, Real.exp_log hpos2] using this
+      -- substitute `m = Nat.sqrt (s / K)`
+      simpa [m, hcast] using hexp.symm
+
+    have hlog2_pos : 0 < Real.log 2 := by
+      have : (1 : ℝ) < (2 : ℝ) := by norm_num
+      simpa using Real.log_pos this
+
+    -- Step 1: bound `sqrt s` by `sqrt K * (m + 2)`.
+    have hs_nat : s < (s / K + 1) * K := by
+      have hmodlt : s % K < K := Nat.mod_lt s hKpos
+      have hdivmod : s = K * (s / K) + s % K := by
+        simpa using (Nat.div_add_mod s K).symm
+      calc
+        s = K * (s / K) + s % K := hdivmod
+        _ < K * (s / K) + K := Nat.add_lt_add_left hmodlt _
+        _ = (s / K + 1) * K := by
+          -- rewrite to `K * (s / K + 1)` then commute
+          have : K * (s / K) + K = K * (s / K + 1) := by
+            calc
+              K * (s / K) + K = K * (s / K) + K * 1 := by simp
+              _ = K * (s / K + 1) := by
+                simpa [Nat.mul_add] using (Nat.mul_add K (s / K) 1).symm
+          -- commute multiplication
+          simpa [Nat.mul_comm, this]
+
+    have hs_real : (s : ℝ) ≤ (((s / K + 1) * K : ℕ) : ℝ) := by
+      exact_mod_cast (Nat.le_of_lt hs_nat)
+
+    have hsqrt_le : Real.sqrt (s : ℝ) ≤ Real.sqrt (((s / K + 1) * K : ℕ) : ℝ) :=
+      Real.sqrt_le_sqrt hs_real
+
+    have hsqrt_mul :
+        Real.sqrt (((s / K + 1) * K : ℕ) : ℝ) =
+          Real.sqrt ((s / K + 1 : ℕ) : ℝ) * Real.sqrt (K : ℝ) := by
+      have hx : 0 ≤ ((s / K + 1 : ℕ) : ℝ) := by positivity
+      -- cast multiplication and apply `sqrt_mul`
+      simpa [Nat.cast_mul, Nat.cast_add, Nat.cast_one, mul_assoc, mul_left_comm, mul_comm] using
+        (Real.sqrt_mul hx (K : ℝ))
+
+    have hsqrt_le' : Real.sqrt (s : ℝ) ≤
+        Real.sqrt (K : ℝ) * ((m : ℝ) + 2) := by
+      have hsqrt_first : Real.sqrt ((s / K + 1 : ℕ) : ℝ) ≤ (m : ℝ) + 2 := by
+        have h1 : Real.sqrt ((s / K + 1 : ℕ) : ℝ) ≤ (Nat.sqrt (s / K + 1) : ℝ) + 1 := by
+          simpa using (Real.real_sqrt_le_nat_sqrt_succ (a := (s / K + 1)))
+        have h2_nat : Nat.sqrt (s / K + 1) ≤ Nat.sqrt (s / K) + 1 := by
+          simpa [Nat.succ_eq_add_one] using (Nat.sqrt_succ_le_succ_sqrt (s / K))
+        have h2' : (Nat.sqrt (s / K + 1) : ℝ) ≤ (m : ℝ) + 1 := by
+          simpa [m] using (show (Nat.sqrt (s / K + 1) : ℝ) ≤ (Nat.sqrt (s / K) : ℝ) + 1 from
+            (by exact_mod_cast h2_nat))
+        have h2 : (Nat.sqrt (s / K + 1) : ℝ) + 1 ≤ (m : ℝ) + 2 := by
+          nlinarith [h2']
+        exact le_trans h1 h2
+
+      have hsqrt_le'' : Real.sqrt (s : ℝ) ≤
+          Real.sqrt ((s / K + 1 : ℕ) : ℝ) * Real.sqrt (K : ℝ) := by
+        simpa [hsqrt_mul, mul_comm, mul_left_comm, mul_assoc] using hsqrt_le
+
+      have hKnonneg : 0 ≤ Real.sqrt (K : ℝ) := by positivity
+      have := mul_le_mul_of_nonneg_right hsqrt_first hKnonneg
+      have : Real.sqrt ((s / K + 1 : ℕ) : ℝ) * Real.sqrt (K : ℝ) ≤
+          Real.sqrt (K : ℝ) * ((m : ℝ) + 2) := by
+        simpa [mul_assoc, mul_left_comm, mul_comm, add_assoc] using this
+      exact le_trans hsqrt_le'' this
+
+    -- Step 2: for `s ≥ 4*K`, we have `m ≥ 2`, hence `m+2 ≤ 2*m`.
+    have hm_ge : 2 ≤ m := by
+      have hdiv : 4 ≤ s / K := by
+        have hs' : 4 * K ≤ s := hs
+        -- `4 * K ≤ s` iff `4 ≤ s / K`
+        exact ((Nat.galoisConnection_mul_div (k := K) hKpos) 4 s).1 hs'
+      have hsqrt4 : Nat.sqrt 4 = 2 := by
+        simpa using (Nat.sqrt_eq 2)
+      have hmon : Nat.sqrt 4 ≤ Nat.sqrt (s / K) := Nat.sqrt_le_sqrt hdiv
+      simpa [m, hsqrt4] using hmon
+
+    have hm2 : (m : ℝ) + 2 ≤ 2 * (m : ℝ) := by
+      have hm_geR : (2 : ℝ) ≤ (m : ℝ) := by exact_mod_cast hm_ge
+      nlinarith
+
+    have hsqrt_le_m : Real.sqrt (s : ℝ) ≤ 2 * Real.sqrt (K : ℝ) * (m : ℝ) := by
+      have h' : Real.sqrt (s : ℝ) ≤ Real.sqrt (K : ℝ) * (2 * (m : ℝ)) := by
+        have hKnonneg : 0 ≤ Real.sqrt (K : ℝ) := by positivity
+        have := mul_le_mul_of_nonneg_left hm2 hKnonneg
+        have : Real.sqrt (K : ℝ) * ((m : ℝ) + 2) ≤ Real.sqrt (K : ℝ) * (2 * (m : ℝ)) := by
+          simpa [mul_assoc, mul_left_comm, mul_comm] using this
+        exact le_trans hsqrt_le' this
+      simpa [mul_assoc, mul_left_comm, mul_comm] using h'
+
+    -- Step 3: compare exponents and conclude.
+    have : Real.exp ((Real.log 2) / (4 * Real.sqrt (K : ℝ)) * Real.sqrt (s : ℝ)) ≤ Real.exp (m * Real.log 2) := by
+      apply (Real.exp_le_exp).2
+      have hKposR : 0 < Real.sqrt (K : ℝ) := by
+        have hKposR' : (0 : ℝ) < (K : ℝ) := by exact_mod_cast hKpos
+        simpa using Real.sqrt_pos.2 hKposR'
+      have hKne : (4 * Real.sqrt (K : ℝ)) ≠ 0 := by
+        nlinarith [hKposR]
+      have hc_nonneg : 0 ≤ (Real.log 2) / (4 * Real.sqrt (K : ℝ)) := by
+        exact (le_of_lt (div_pos hlog2_pos (by nlinarith [hKposR])))
+      have hexp1 : ((Real.log 2) / (4 * Real.sqrt (K : ℝ))) * Real.sqrt (s : ℝ)
+          ≤ ((Real.log 2) / (4 * Real.sqrt (K : ℝ))) * (2 * Real.sqrt (K : ℝ) * (m : ℝ)) := by
+        exact mul_le_mul_of_nonneg_left hsqrt_le_m hc_nonneg
+      have hsimp : ((Real.log 2) / (4 * Real.sqrt (K : ℝ))) * (2 * Real.sqrt (K : ℝ) * (m : ℝ))
+          = (Real.log 2) / 2 * (m : ℝ) := by
+        field_simp [hKne]
+        ring
+      have hexp2 : ((Real.log 2) / (4 * Real.sqrt (K : ℝ))) * Real.sqrt (s : ℝ) ≤ (Real.log 2) / 2 * (m : ℝ) := by
+        simpa [hsimp] using hexp1
+      have hm_nonneg : 0 ≤ (m : ℝ) := by positivity
+      have hlog2_nonneg : 0 ≤ Real.log 2 := le_of_lt hlog2_pos
+      have : (Real.log 2) / 2 * (m : ℝ) ≤ (m : ℝ) * Real.log 2 := by
+        nlinarith [hm_nonneg, hlog2_nonneg]
+      have : ((Real.log 2) / (4 * Real.sqrt (K : ℝ))) * Real.sqrt (s : ℝ) ≤ (m : ℝ) * Real.log 2 :=
+        le_trans hexp2 this
+      simpa [mul_assoc, mul_left_comm, mul_comm] using this
+
+    simpa [hRexp] using this
+
+theorem theorem5_exists_r_ball0_inter_sphere_ncard_lt (n : ℕ) (hn : 2 ≤ n) (M : Set (FreeMonoid (Fin n))) :
+    ∃ r : ℕ, Set.ncard (Ball 0 (M ∪ (A n)) ∩ Sphere n r) < Set.ncard (Sphere n r) := by
+  classical
+  refine ⟨1, ?_⟩
+  have hEmpty : Ball 0 (M ∪ (A n)) ∩ Sphere n 1 = (∅ : Set (FreeMonoid (Fin n))) := by
+    ext w
+    simp [free.Ball, Sphere]
+  -- reduce to a numeric inequality
+  have hnpos : 0 < n := by
+    exact lt_of_lt_of_le (by decide : 0 < (2 : ℕ)) hn
+  -- finish
+  simp [hEmpty, theorem5_ncard_Sphere, hnpos]
+
+theorem theorem5_exists_r_ball1_inter_sphere_ncard_lt (n : ℕ) (hn : 2 ≤ n)
+    (M : Set (FreeMonoid (Fin n)))
+    (hMdens :
+      Tendsto
+        (fun r : ℕ =>
+          ((Set.ncard (M ∩ Sphere n r) : ℝ) / (Set.ncard (Sphere n r) : ℝ)))
+        atTop (nhds 0)) :
+    ∃ r : ℕ, Set.ncard (Ball 1 (M ∪ (A n)) ∩ Sphere n r) < Set.ncard (Sphere n r) := by
+  classical
+  -- obtain eventual bound f r < 1 from the density tending to 0
+  let f : ℕ → ℝ := fun r : ℕ =>
+    ((Set.ncard (M ∩ Sphere n r) : ℝ) / (Set.ncard (Sphere n r) : ℝ))
+  have hf : Tendsto f atTop (nhds (0 : ℝ)) := by
+    simpa [f] using hMdens
+  have hlt1 : ∀ᶠ r : ℕ in atTop, f r < 1 := by
+    have hmem : (0 : ℝ) ∈ Set.Iio (1 : ℝ) := by
+      simp
+    have hopen : IsOpen (Set.Iio (1 : ℝ)) := isOpen_Iio
+    simpa [f] using (hf.eventually (hopen.mem_nhds hmem))
+  have hlarge : ∀ᶠ r : ℕ in atTop, 2 ≤ r := by
+    exact Filter.eventually_atTop.2 ⟨2, by intro r hr; exact hr⟩
+  have hboth : ∀ᶠ r : ℕ in atTop, 2 ≤ r ∧ f r < 1 :=
+    hlarge.and hlt1
+  rcases (Filter.eventually_atTop.1 hboth) with ⟨r, hr⟩
+  have hr' : 2 ≤ r ∧ f r < 1 := hr r (le_rfl)
+  have hr2 : 2 ≤ r := hr'.1
+  have hfr : f r < 1 := hr'.2
+
+  -- simplify the ball-1 intersection for r ≥ 2
+  have hEq : Ball 1 (M ∪ A n) ∩ Sphere n r = M ∩ Sphere n r := by
+    ext w
+    constructor
+    · intro hw
+      rcases hw with ⟨hwBall, hwSphere⟩
+      have hlen : w.length = r := by
+        simpa [Sphere] using hwSphere
+      -- analyze membership in Ball 1
+      rcases hwBall with ⟨l, hl, hlX, rfl⟩
+      -- l has length ≤ 1
+      cases l with
+      | nil =>
+          -- product of empty list is 1, but r ≥ 2 so cannot lie in the sphere
+          have hr0 : r = 0 := by
+            -- length of 1 is 0
+            simpa using hlen.symm
+          have : False := by
+            have : 2 ≤ 0 := by simpa [hr0] using hr2
+            omega
+          exact this.elim
+      | cons a t =>
+          cases t with
+          | nil =>
+              -- l = [a]
+              have haX : a ∈ M ∪ A n := by
+                exact hlX a (by simp)
+              have hlen' : a.length = r := by
+                simpa using hlen
+              have haM : a ∈ M := by
+                rcases haX with haM | haA
+                · exact haM
+                · -- a ∈ A n implies length 1, contradiction with r ≥ 2
+                  have haLen : a.length = 1 := by
+                    rcases haA with ⟨i, rfl⟩
+                    simp [FreeMonoid.length, FreeMonoid.of]
+                  have hr1 : r = 1 := by
+                    calc
+                      r = a.length := by simpa using hlen'.symm
+                      _ = 1 := haLen
+                  have : False := by
+                    have : 2 ≤ 1 := by simpa [hr1] using hr2
+                    omega
+                  exact this.elim
+              have hwM : ([a].prod) ∈ M := by
+                simpa using haM
+              exact ⟨hwM, hwSphere⟩
+          | cons b t' =>
+              -- length ≥ 2 contradicts hl : length ≤ 1
+              have : False := by
+                have : 2 ≤ (a :: b :: t').length := by simp
+                have : (2 : ℕ) ≤ 1 := le_trans this hl
+                omega
+              exact this.elim
+    · intro hw
+      rcases hw with ⟨hwM, hwSphere⟩
+      refine ⟨?_, hwSphere⟩
+      -- put w into Ball 1 using singleton list
+      refine ⟨[w], ?_, ?_, by simp⟩
+      · simp
+      · intro x hx
+        simp at hx
+        rcases hx with rfl
+        exact Or.inl hwM
+
+  -- convert f r < 1 into ncard inequality
+  have hdenPos : 0 < (Set.ncard (Sphere n r) : ℝ) := by
+    have hnpos : 0 < n := lt_of_lt_of_le (by decide : 0 < (2 : ℕ)) hn
+    have : 0 < (n ^ r : ℝ) := by
+      have : (0 : ℝ) < (n : ℝ) := by exact_mod_cast hnpos
+      simpa using pow_pos this r
+    -- rewrite using theorem5_ncard_Sphere
+    simpa [theorem5_ncard_Sphere] using this
+  have hreal : (Set.ncard (M ∩ Sphere n r) : ℝ) < (Set.ncard (Sphere n r) : ℝ) := by
+    have := (div_lt_one hdenPos).1 (by simpa [f] using hfr)
+    simpa using this
+  have hnat : Set.ncard (M ∩ Sphere n r) < Set.ncard (Sphere n r) := by
+    exact_mod_cast hreal
+
+  refine ⟨r, ?_⟩
+  -- finish by rewriting with hEq
+  simpa [hEq] using hnat
+
+theorem theorem5_exists_r_ball_s_inter_sphere_ncard_lt (n : ℕ) (hn : 2 ≤ n)
+    (M : Set (FreeMonoid (Fin n))) (s : ℕ)
+    (hMdens :
+      Tendsto
+        (fun r : ℕ =>
+          ((Set.ncard (M ∩ Sphere n r) : ℝ) / (Set.ncard (Sphere n r) : ℝ)))
+        atTop (nhds 0)) :
+    ∃ r : ℕ, Set.ncard (Ball s (M ∪ (A n)) ∩ Sphere n r) < Set.ncard (Sphere n r) := by
+  -- ⚠️ This lemma is currently the only blocker in the blueprint.
+  -- 
+  -- ### What it is trying to prove
+  -- For a fixed `s`, from the qualitative sparsity hypothesis
+  -- `hMdens : Tendsto (|M∩Sphere r|/|Sphere r|) → 0`, show that the `s`-step ball built from `M ∪ A n` misses at least one word on some sphere:
+  -- `∃ r, ncard (Ball s (M ∪ A n) ∩ Sphere n r) < ncard (Sphere n r)`.
+  -- Equivalently: `Ball s (M ∪ A n) ≠ univ`.
+  -- 
+  -- ### What is known / easy
+  -- * `s = 0` and `s = 1` are already handled by existing helper lemmas.
+  -- 
+  -- ### Why the `s ≥ 2` case is likely *not* derivable from `hMdens` alone
+  -- A naive counting argument bounds
+  -- `ncard (Ball s (M ∪ A n) ∩ Sphere n r)`
+  -- by a sum over compositions of `r` into `≤ s` parts, producing a polynomial-in-`r` factor (≈ `r^(s-1)`) multiplying various densities of `M`.
+  -- The hypothesis `Tendsto density → 0` is purely qualitative and does **not** give a decay rate that can beat such polynomial losses (e.g. a sequence like `1 / log r` tends to 0 but does not beat any fixed polynomial).
+  -- So if this lemma is true, it needs a more subtle argument than a union bound over compositions; if it is false, the blueprint must be refactored.
+  -- 
+  -- ### Recommended blueprint-level fixes (choose one; propagate downstream)
+  -- **Option A (most robust): refactor away this lemma**
+  -- * Stop trying to derive non-universality of `Ball s (M ∪ A n)` from qualitative density.
+  -- * Instead, make the needed boundedness/non-universality assumption explicit exactly where `csSup` is used.
+  --   - e.g. change downstream lemmas to take
+  --     `hBdd : BddAbove {t | Ball t (A n) ⊆ Ball s (M ∪ A n)}`
+  --     or directly `Ball s (M ∪ A n) ≠ univ`.
+  -- * Then prove that assumption only in the specific situations you need (potentially using extra structure of the particular `M` produced by `theorem5_simplification`, not just density).
+  -- 
+  -- **Option B: strengthen hypotheses quantitatively**
+  -- Replace `hMdens` by an assumption strong enough for the counting argument, e.g.
+  -- `∀ᶠ r, Set.ncard (M ∩ Sphere n r) ≤ Set.ncard (Sphere n r) / (r+1)^(s+2)`
+  -- or anything implying `r^(s-1) * density(r) → 0`.
+  -- 
+  -- **Option C: weaken the lemma**
+  -- Restrict the statement to the provable cases (`s = 0` and `s = 1`), and refactor all later lemmas so that they do not require the `s ≥ 2` branch.
+  -- 
+  -- ### If we try to prove it anyway
+  -- A successful proof would likely need to exploit additional structure of `M` (beyond mere `Tendsto density → 0`) or show that any hypothetical cover by `≤ s` pieces forces a uniform lower bound on densities contradicting `Tendsto … → 0`.
+  sorry
+
+theorem theorem5_ball_s_ne_univ_of_density (n : ℕ) (hn : 2 ≤ n)
+    (M : Set (FreeMonoid (Fin n))) (s : ℕ)
+    (hMdens :
+      Tendsto
+        (fun r : ℕ =>
+          ((Set.ncard (M ∩ Sphere n r) : ℝ) / (Set.ncard (Sphere n r) : ℝ)))
+        atTop (nhds 0)) :
+    Ball s (M ∪ (A n)) ≠ (Set.univ : Set (FreeMonoid (Fin n))) := by
+  classical
+  rcases theorem5_exists_r_ball_s_inter_sphere_ncard_lt n hn M s hMdens with ⟨r, hr⟩
+  intro hBall
+  have hEq : Ball s (M ∪ (A n)) ∩ Sphere n r = Sphere n r := by
+    simpa [hBall, Set.univ_inter]
+  have hcard : Set.ncard (Ball s (M ∪ (A n)) ∩ Sphere n r) = Set.ncard (Sphere n r) := by
+    simpa [hEq]
+  have hcontra : Set.ncard (Sphere n r) < Set.ncard (Sphere n r) := by
+    simpa [hcard] using hr
+  exact (lt_irrefl _ hcontra)
+
+
+theorem theorem5_bddAbove_ball_subset (n : ℕ) (hn : 2 ≤ n) (M : Set (FreeMonoid (Fin n))) (s : ℕ)
+    (hMdens :
+      Tendsto
+        (fun r : ℕ =>
+          ((Set.ncard (M ∩ Sphere n r) : ℝ) / (Set.ncard (Sphere n r) : ℝ)))
+        atTop (nhds 0)) :
+    BddAbove {t : ℕ | Ball t (A n) ⊆ Ball s (M ∪ (A n))} := by
+  classical
+  have hne : Ball s (M ∪ (A n)) ≠ (Set.univ : Set (FreeMonoid (Fin n))) :=
+    theorem5_ball_s_ne_univ_of_density (n := n) hn (M := M) (s := s) hMdens
+  have hex : ∃ w : FreeMonoid (Fin n), w ∉ Ball s (M ∪ (A n)) :=
+    (Set.ne_univ_iff_exists_not_mem (s := Ball s (M ∪ (A n)))).1 hne
+  rcases hex with ⟨w, hw⟩
+  let S : Set ℕ := {t : ℕ | Ball t (A n) ⊆ Ball s (M ∪ (A n))}
+  refine (bddAbove_def).2 ?_
+  refine ⟨w.length, ?_⟩
+  intro t ht
+  have ht_le : t ≤ w.length := by
+    by_contra h
+    have hlt : w.length < t := lt_of_not_ge h
+    have hwBallA : w ∈ Ball t (A n) :=
+      (theorem5_ball_A_iff_length_le n t w).2 (le_of_lt hlt)
+    have : w ∈ Ball s (M ∪ (A n)) := ht hwBallA
+    exact hw this
+  exact ht_le
+
+theorem theorem5_le_expansion_of_ball_subset (n : ℕ) (M : Set (FreeMonoid (Fin n))) (s r : ℕ)
+    (hBdd : BddAbove {t : ℕ | Ball t (A n) ⊆ Ball s (M ∪ (A n))})
+    (h : Ball r (A n) ⊆ Ball s (M ∪ (A n))) :
+    r ≤ expansion (A n) (M ∪ (A n)) s := by
+  classical
+  -- Let S be the set of radii whose balls in `A n` fit inside the `s`-ball of `M ∪ A n`.
+  let S : Set ℕ := {t : ℕ | Ball t (A n) ⊆ Ball s (M ∪ (A n))}
+  have hr : r ∈ S := by
+    -- membership is exactly the hypothesis `h`
+    simpa [S] using h
+  -- Unfold `expansion` as `sSup S` and use `le_csSup`.
+  -- (`le_sSup` does not apply since `ℕ` is only conditionally complete.)
+  simpa [expansion, S] using (le_csSup hBdd hr)
+
+theorem theorem5_eventually_pow_sqrt_le_expansion (n : ℕ) (hn : 2 ≤ n) (M : Set (FreeMonoid (Fin n))) (K : ℕ)
+    (hMdens :
+      Tendsto
+        (fun r : ℕ =>
+          ((Set.ncard (M ∩ Sphere n r) : ℝ) / (Set.ncard (Sphere n r) : ℝ)))
+        atTop (nhds 0))
+    (hKpos : 0 < K)
+    (hBall : ∀ᶠ r : ℕ in atTop,
+      Ball r (A n) ⊆ Ball (K * (Nat.log2 r) ^ 2) (M ∪ (A n))) :
+    ∀ᶠ s : ℕ in atTop,
+      (2 ^ (Nat.sqrt (s / K))) ≤ expansion (A n) (M ∪ (A n)) s := by
+  classical
+  -- Define m(s) := sqrt (s / K) and r(s) := 2 ^ m(s)
+  let m : ℕ → ℕ := fun s => Nat.sqrt (s / K)
+  let r : ℕ → ℕ := fun s => 2 ^ (m s)
+
+  -- m(s) → ∞ as s → ∞
+  have hm_tendsto : Tendsto m atTop atTop := by
+    refine tendsto_atTop.2 ?_
+    intro k
+    refine eventually_atTop.2 ?_
+    refine ⟨K * k ^ 2, ?_⟩
+    intro s hs
+    dsimp [m]
+    have hk2 : k ^ 2 ≤ s / K := by
+      -- use the Galois connection between multiplication and division by `K`
+      have hs' : k ^ 2 * K ≤ s := by
+        simpa [Nat.mul_assoc, Nat.mul_left_comm, Nat.mul_comm] using hs
+      have gc := Nat.galoisConnection_mul_div (k := K) hKpos
+      exact (gc (k ^ 2) s).1 hs'
+    exact (Nat.le_sqrt').2 hk2
+
+  -- r(s) → ∞ as s → ∞
+  have hr_tendsto : Tendsto r atTop atTop := by
+    have hpow : Tendsto (fun t : ℕ => 2 ^ t) atTop atTop :=
+      Nat.tendsto_pow_atTop_atTop_of_one_lt (r := 2) (by decide)
+    exact hpow.comp hm_tendsto
+
+  -- Apply `hBall` at r = r(s) eventually
+  have hBall_r : ∀ᶠ s : ℕ in atTop,
+      Ball (r s) (A n) ⊆ Ball (K * (Nat.log2 (r s)) ^ 2) (M ∪ A n) := by
+    exact (hr_tendsto.eventually hBall)
+
+  -- Show K * (log2 (r(s)))^2 ≤ s
+  have hbound : ∀ s : ℕ, K * (Nat.log2 (r s)) ^ 2 ≤ s := by
+    intro s
+    have hlog : Nat.log2 (r s) = m s := by
+      dsimp [r]
+      -- log2 (2^x) = x
+      simpa [Nat.log2_eq_log_two] using
+        (Nat.log_pow (b := 2) (hb := by decide) (x := m s))
+    -- rewrite by hlog and unfold m
+    rw [hlog]
+    dsimp [m]
+    -- sqrt inequality
+    have hsq : Nat.sqrt (s / K) ^ 2 ≤ s / K := Nat.sqrt_le' (s / K)
+    have hmul1 : K * (Nat.sqrt (s / K) ^ 2) ≤ K * (s / K) :=
+      Nat.mul_le_mul_left K hsq
+    have hmul2 : K * (s / K) ≤ s := by
+      have hle : K * (s / K) ≤ K * (s / K) + s % K := Nat.le_add_right _ _
+      have hdiv : K * (s / K) + s % K = s := Nat.div_add_mod s K
+      exact le_trans hle (le_of_eq hdiv)
+    exact le_trans hmul1 hmul2
+
+  -- Conclude Ball (r(s)) (A n) ⊆ Ball s (M ∪ A n) eventually
+  have hsubset : ∀ᶠ s : ℕ in atTop,
+      Ball (r s) (A n) ⊆ Ball s (M ∪ A n) := by
+    filter_upwards [hBall_r] with s hs
+    have hmono : Ball (K * (Nat.log2 (r s)) ^ 2) (M ∪ A n) ⊆ Ball s (M ∪ A n) :=
+      theorem5_ball_mono_R (n := n) (X := (M ∪ A n)) (h := hbound s)
+    exact Set.Subset.trans hs hmono
+
+  -- Apply the `expansion` bound
+  refine hsubset.mono ?_
+  intro s hs
+  have hBdd : BddAbove {t : ℕ | Ball t (A n) ⊆ Ball s (M ∪ A n)} :=
+    theorem5_bddAbove_ball_subset n hn M s hMdens
+  have hle : r s ≤ expansion (A n) (M ∪ A n) s :=
+    theorem5_le_expansion_of_ball_subset n M s (r s) hBdd hs
+  simpa [r, m] using hle
+
+theorem theorem5_expansion_eventually_ge_exp (n : ℕ) (hn : 2 ≤ n) (M : Set (FreeMonoid (Fin n))) (K : ℕ)
+    (hMdens :
+      Tendsto
+        (fun r : ℕ =>
+          ((Set.ncard (M ∩ Sphere n r) : ℝ) / (Set.ncard (Sphere n r) : ℝ)))
+        atTop (nhds 0))
+    (hKpos : 0 < K)
+    (hBall : ∀ᶠ r : ℕ in atTop,
+      Ball r (A n) ⊆ Ball (K * (Nat.log2 r) ^ 2) (M ∪ (A n))) :
+    ∃ c : ℝ, 0 < c ∧
+      (∀ᶠ s : ℕ in atTop,
+        Real.exp (c * Real.sqrt (s : ℝ)) ≤ (expansion (A n) (M ∪ (A n)) s : ℝ)) := by
+  classical
+  -- Combine the two eventual bounds: exp(c*sqrt s) ≤ 2^(sqrt (s/K)) ≤ expansion ... s
+  rcases theorem5_eventually_exp_le_pow_sqrt K hKpos with ⟨c, hcpos, hcevent⟩
+  refine ⟨c, hcpos, ?_⟩
+  have hpow : ∀ᶠ s : ℕ in atTop,
+      (2 ^ (Nat.sqrt (s / K))) ≤ expansion (A n) (M ∪ (A n)) s :=
+    theorem5_eventually_pow_sqrt_le_expansion n hn M K hMdens hKpos hBall
+  filter_upwards [hcevent, hpow] with s hsExp hsPow
+  have hsPowR : ((2 ^ (Nat.sqrt (s / K)) : ℕ) : ℝ) ≤ (expansion (A n) (M ∪ (A n)) s : ℝ) := by
+    exact_mod_cast hsPow
+  exact le_trans hsExp hsPowR
+
+theorem theorem5_tendsto_expansion_div_atTop (n : ℕ) (M : Set (FreeMonoid (Fin n))) (c : ℝ)
+    (hc : 0 < c)
+    (hExp : ∀ᶠ s : ℕ in atTop,
+      Real.exp (c * Real.sqrt (s : ℝ)) ≤ (expansion (A n) (M ∪ (A n)) s : ℝ)) :
+    Tendsto
+      (fun s : ℕ => ((expansion (A n) (M ∪ (A n)) s : ℝ) / (s : ℝ)))
+      atTop atTop := by
+  classical
+  -- Step 1: show `exp (c * sqrt s) / s` tends to +∞.
+  have hsqrt_atTop_real : Tendsto (fun x : ℝ => Real.sqrt x) atTop atTop := by
+    have hy : (0 : ℝ) < (1 / (2 : ℝ)) := by
+      norm_num
+    -- `tendsto_rpow_atTop` gives the result for `x ↦ x^(1/2)`.
+    simpa [Real.sqrt_eq_rpow] using (tendsto_rpow_atTop hy)
+
+  have hsqrt_atTop_nat : Tendsto (fun s : ℕ => Real.sqrt (s : ℝ)) atTop atTop := by
+    simpa using hsqrt_atTop_real.comp tendsto_natCast_atTop_atTop
+
+  have hExpDiv : Tendsto (fun x : ℝ => Real.exp (c * x) / x ^ (2 : ℝ)) atTop atTop := by
+    simpa using (tendsto_exp_mul_div_rpow_atTop (s := (2 : ℝ)) (b := c) hc)
+
+  have hExpSqrtDiv : Tendsto (fun s : ℕ => Real.exp (c * Real.sqrt (s : ℝ)) / (s : ℝ)) atTop atTop := by
+    -- compose with `x = sqrt s`
+    have hcomp : Tendsto (fun s : ℕ => Real.exp (c * Real.sqrt (s : ℝ)) / (Real.sqrt (s : ℝ)) ^ (2 : ℝ)) atTop atTop :=
+      hExpDiv.comp hsqrt_atTop_nat
+    -- rewrite the denominator `((sqrt s)^(2:ℝ))` as `s`
+    have hEq : (fun s : ℕ => Real.exp (c * Real.sqrt (s : ℝ)) / (Real.sqrt (s : ℝ)) ^ (2 : ℝ)) =
+        (fun s : ℕ => Real.exp (c * Real.sqrt (s : ℝ)) / (s : ℝ)) := by
+      funext s
+      have hsnonneg : (0 : ℝ) ≤ (s : ℝ) := by
+        exact_mod_cast (Nat.zero_le s)
+      -- `((sqrt s)^(2:ℝ)) = s`
+      have hsqrt_sq : (Real.sqrt (s : ℝ)) ^ (2 : ℝ) = (s : ℝ) := by
+        -- use `Real.rpow_two` and `Real.sq_sqrt`
+        simpa [Real.rpow_two, Real.sq_sqrt hsnonneg]
+      simp [hsqrt_sq]
+    simpa [hEq] using hcomp
+
+  -- Step 2: divide the inequality in `hExp` by `s`.
+  have hLe : ∀ᶠ s : ℕ in atTop,
+      Real.exp (c * Real.sqrt (s : ℝ)) / (s : ℝ) ≤ (expansion (A n) (M ∪ (A n)) s : ℝ) / (s : ℝ) := by
+    filter_upwards [hExp] with s hsExp
+    have hsnonneg : (0 : ℝ) ≤ (s : ℝ) := by
+      exact_mod_cast (Nat.zero_le s)
+    -- divide by a nonnegative number (works even for `s = 0`).
+    exact (div_le_div_of_nonneg_right hsExp hsnonneg)
+
+  -- Step 3: conclude by monotonicity of `Tendsto` to `atTop`.
+  exact Filter.tendsto_atTop_mono' atTop hLe hExpSqrtDiv
+
+theorem theorem5 (n : ℕ) (hn : 2 ≤ n) :
     ∃ M : Set (FreeMonoid (Fin n)),
       Tendsto
         (fun r : ℕ =>
@@ -3000,4 +3536,15 @@ theorem theorem5
         ∧
        (∀ᶠ s : ℕ in atTop,
          (Real.exp (c * Real.sqrt (s : ℝ)) ≤ (expansion (A n) (M ∪ (A n)) s : ℝ))) := by
- sorry
+  classical
+  rcases theorem5_simplification n hn with ⟨M, hMdens, ⟨K, hKpos, hBall⟩⟩
+  rcases theorem5_expansion_eventually_ge_exp n hn M K hMdens hKpos hBall with ⟨c, hc, hExp⟩
+  have hRatio :
+      Tendsto
+        (fun s : ℕ => ((expansion (A n) (M ∪ (A n)) s : ℝ) / (s : ℝ)))
+        atTop atTop :=
+    theorem5_tendsto_expansion_div_atTop n M c hc hExp
+  refine ⟨M, hMdens, hRatio, ?_⟩
+  exact ⟨K, c, hKpos, hc, hBall, hExp⟩
+
+
