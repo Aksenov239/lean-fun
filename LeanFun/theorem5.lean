@@ -3021,8 +3021,74 @@ theorem theorem5
          (Real.exp (c * Real.sqrt (s : ℝ)) ≤ (expansion (A n) (M ∪ (A n)) s))) := by
   sorry
 
-theorem theorem5_alternative
-    (n : ℕ) (hn : 2 ≤ n) :
+theorem theorem5_ball_subset_of_le_expansion {n : ℕ} (M : Set (FreeMonoid (Fin n))) (s r : ℕ) :
+    r ≤ expansion (A n) (M ∪ (A n)) s →
+      Ball r (A n) ⊆ Ball s (M ∪ (A n)) := by
+  intro hr
+  classical
+  -- Define the set whose supremum gives the expansion.
+  let S : Set ℕ := {t : ℕ | Ball t (A n) ⊆ Ball s (M ∪ A n)}
+  have hS0 : (0 : ℕ) ∈ S := by
+    -- Ball 0 (A n) ⊆ Ball s (A n)
+    have hmonoR : Ball 0 (A n) ⊆ Ball s (A n) :=
+      theorem5_ball_mono_R (n := n) (R := 0) (R' := s) (X := (A n)) (by omega)
+    -- and Ball s (A n) ⊆ Ball s (M ∪ A n)
+    have hsub : (A n : Set (FreeMonoid (Fin n))) ⊆ (M ∪ A n) := by
+      intro x hx
+      exact Or.inr hx
+    have hmonoX : Ball s (A n) ⊆ Ball s (M ∪ A n) :=
+      theorem5_ball_mono_X (n := n) (R := s) (X := (A n)) (Y := (M ∪ A n)) hsub
+    -- combine
+    exact Set.Subset.trans hmonoR hmonoX
+  have hS_ne : S.Nonempty := ⟨0, hS0⟩
+  have hr' : r ≤ sSup S := by
+    -- unfold `expansion`
+    simpa [expansion, S] using hr
+
+  by_cases hInf : S.Infinite
+  · -- In the infinite case, `sSup S = 0`.
+    have hsup0 : sSup S = 0 := Set.Infinite.Nat.sSup_eq_zero hInf
+    have hr0 : r = 0 := by
+      have : r ≤ 0 := by simpa [hsup0] using hr'
+      exact Nat.eq_zero_of_le_zero this
+    subst hr0
+    -- conclude from `0 ∈ S`.
+    simpa [S] using hS0
+  · -- Otherwise, the set is finite, hence bounded above.
+    have hFin : S.Finite := Set.finite_or_infinite S |> (fun h => by
+      cases h with
+      | inl hFin => exact hFin
+      | inr hInf' => cases hInf (by simpa using hInf'))
+    have hBdd : BddAbove S := hFin.bddAbove
+    have hmem : sSup S ∈ S := Nat.sSup_mem hS_ne hBdd
+    have hsup_ball : Ball (sSup S) (A n) ⊆ Ball s (M ∪ A n) := by
+      simpa [S] using hmem
+    have hmonoR : Ball r (A n) ⊆ Ball (sSup S) (A n) :=
+      theorem5_ball_mono_R (n := n) (R := r) (R' := sSup S) (X := (A n)) hr'
+    exact Set.Subset.trans hmonoR hsup_ball
+
+theorem theorem5_eventually_ball_ceil_exp_subset {n : ℕ} (M : Set (FreeMonoid (Fin n))) (c : ℝ) :
+    (∀ᶠ s : ℕ in atTop,
+        Real.exp (c * Real.sqrt (s : ℝ)) ≤ expansion (A n) (M ∪ (A n)) s) →
+    (∀ᶠ s : ℕ in atTop,
+        Ball (Int.toNat <| Int.ceil <| Real.exp (c * Real.sqrt (s : ℝ))) (A n)
+          ⊆ Ball s (M ∪ (A n))) := by
+  intro h
+  refine Filter.Eventually.mono h ?_
+  intro s hs
+  have hr :
+      Int.toNat (Int.ceil (Real.exp (c * Real.sqrt (s : ℝ))))
+        ≤ expansion (A n) (M ∪ (A n)) s := by
+    have hceil :
+        (⌈Real.exp (c * Real.sqrt (s : ℝ))⌉₊ : ℕ)
+          ≤ expansion (A n) (M ∪ (A n)) s := by
+      exact (Nat.ceil_le).2 hs
+    simpa [Int.ceil_toNat] using hceil
+  exact
+    theorem5_ball_subset_of_le_expansion (n := n) (M := M) (s := s)
+      (r := Int.toNat (Int.ceil (Real.exp (c * Real.sqrt (s : ℝ))))) hr
+
+theorem theorem5_alternative (n : ℕ) (hn : 2 ≤ n) :
     ∃ M : Set (FreeMonoid (Fin n)),
       Tendsto
         (fun r : ℕ =>
@@ -3040,4 +3106,13 @@ theorem theorem5_alternative
         ∧
        (∀ᶠ s : ℕ in atTop,
           (Ball (Int.toNat <| Int.ceil <| Real.exp (c * Real.sqrt (s : ℝ))) (A n) ⊆ (Ball s (M ∪ (A n))))) := by
-  sorry
+  classical
+  rcases theorem5 n hn with ⟨M, hMdens, hExpTendsto, ⟨K, c, hKpos, hcpos, hBall, hExpLower⟩⟩
+  have hBallCeil :
+      (∀ᶠ s : ℕ in atTop,
+        Ball (Int.toNat <| Int.ceil <| Real.exp (c * Real.sqrt (s : ℝ))) (A n)
+          ⊆ Ball s (M ∪ (A n))) :=
+    theorem5_eventually_ball_ceil_exp_subset (n := n) (M := M) (c := c) hExpLower
+  refine ⟨M, hMdens, hExpTendsto, ?_⟩
+  refine ⟨K, c, hKpos, hcpos, hBall, hBallCeil⟩
+
