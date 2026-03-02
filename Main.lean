@@ -90,30 +90,6 @@ def Quad (c : ℕ) : Finset (ℕ × ℕ) :=
 /-! ## The theorem statement (no proof) -/
 
 /--
-**Theorem (formal statement only).**
-
-If `c ≥ 2` and
-`C = max (D + c*c - 1) ((D+1)*(c-1))`,
-and the maximum degree of `G` is at most `D`,
-then for *every* list system `L` with lists of size `C`,
-there exists a proper list-coloring which is `Lin(c)`-nondegenerate.
--/
-theorem exists_proper_list_coloring_Lin
-    {D C c : ℕ}
-    (hc : 2 ≤ c)
-    (hC : C = max (D + c * c - 1) ((D + 1) * (c - 1)))
-    (hΔ : ∀ v : V, deg (G := G) v ≤ D) :
-    ∀ (L : ListSystem (V := V) C),
-      ListSystemHasCard (V := V) (C := C) L →
-      ∃ (y : Coloring (V := V) C),
-        IsListColoring (V := V) (C := C) L y ∧
-        IsProper (G := G) (V := V) (C := C) y ∧
-        FNondegenerate (G := G) (V := V) (C := C) y (Lin c) :=
-by
-  -- proof not provided (translation only)
-  sorry
-
-/--
 **Theorem 2 (formal statement only).**
 
 If `c ≥ 2` and `C = D + c*c - 1` and `Δ(G) ≤ D`,
