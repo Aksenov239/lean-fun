@@ -3005,8 +3005,1152 @@ theorem theorem5_help2 (n : ℕ) (hn : 2 ≤ n) (M : Set (FreeMonoid (Fin n))) :
 
 
 
-theorem theorem5
-    (n : ℕ) (hn : 2 ≤ n) :
+theorem theorem5_A_length_one (n : ℕ) : ∀ w : FreeMonoid (Fin n), w ∈ (A n) → w.length = 1 := by
+  intro w hw
+  rcases (by
+    simpa [free.A] using hw) with ⟨i, rfl⟩
+  simp [FreeMonoid.length, FreeMonoid.of]
+
+theorem theorem5_ball_mem_iff {n : ℕ} (R : ℕ) (X : Set (FreeMonoid (Fin n))) (m : FreeMonoid (Fin n)) : m ∈ Ball R X ↔ ∃ l : List (FreeMonoid (Fin n)), l.length ≤ R ∧ (∀ x, x ∈ l → x ∈ X) ∧ l.prod = m := by
+  unfold free.Ball
+  rfl
+
+theorem theorem5_ball_mono_R_nat {n : ℕ} {R R' : ℕ} {X : Set (FreeMonoid (Fin n))} : R ≤ R' → Ball R X ⊆ Ball R' X := by
+  intro h
+  exact theorem5_ball_mono_R (n := n) (R := R) (R' := R') (X := X) h
+
+
+theorem theorem5_ball_one_univ_imp_mem_M_of_length_ge_two (n : ℕ) (M : Set (FreeMonoid (Fin n)))
+    (hX : Ball 1 (M ∪ (A n)) = Set.univ) :
+    ∀ w : FreeMonoid (Fin n), 2 ≤ w.length → w ∈ M := by
+  intro w hwlen
+  have hwBall : w ∈ Ball 1 (M ∪ (A n)) := by
+    -- use hX : Ball 1 (M ∪ A n) = univ
+    simpa [hX] using (show w ∈ (Set.univ : Set (FreeMonoid (Fin n))) from by trivial)
+  rcases (theorem5_ball_mem_iff (n := n) 1 (M ∪ (A n)) w).1 hwBall with ⟨l, hl_len, hl_mem, hl_prod⟩
+  cases l with
+  | nil =>
+      exfalso
+      have hw1 : w = 1 := by
+        simpa using hl_prod.symm
+      have hlen : (2 : ℕ) ≤ (1 : FreeMonoid (Fin n)).length := by
+        simpa [hw1] using hwlen
+      have hlen' : (2 : ℕ) ≤ 0 := by
+        simpa using hlen
+      exact (by decide : ¬ ((2 : ℕ) ≤ 0)) hlen'
+  | cons u t =>
+      cases t with
+      | nil =>
+          have huw : u = w := by
+            simpa using hl_prod
+          have huX : u ∈ (M ∪ (A n)) := by
+            exact hl_mem u (by simp)
+          have hwX : w ∈ (M ∪ (A n)) := by
+            simpa [huw] using huX
+          rcases hwX with hwM | hwA
+          · exact hwM
+          · exfalso
+            have hlen1 : w.length = 1 := theorem5_A_length_one n w hwA
+            have hbad : (2 : ℕ) ≤ 1 := by
+              simpa [hlen1] using hwlen
+            exact (by decide : ¬ ((2 : ℕ) ≤ 1)) hbad
+      | cons v t' =>
+          exfalso
+          have hl : Nat.succ (Nat.succ t'.length) ≤ 1 := by
+            simpa using hl_len
+          have hl' : Nat.succ t'.length ≤ 0 :=
+            Nat.succ_le_succ_iff.mp hl
+          exact (Nat.not_succ_le_zero t'.length) hl'
+
+theorem theorem5_ball_zero_eq_singleton {n : ℕ} (X : Set (FreeMonoid (Fin n))) :
+    (Ball 0 X : Set (FreeMonoid (Fin n))) = {1} := by
+  ext m
+  constructor
+  · intro hm
+    rcases (theorem5_ball_mem_iff (n := n) 0 X m).1 hm with ⟨l, hl, hX, hprod⟩
+    cases l with
+    | nil =>
+        have hm1 : (1 : FreeMonoid (Fin n)) = m := by
+          simpa using hprod
+        simpa [Set.mem_singleton_iff] using hm1.symm
+    | cons a t =>
+        exfalso
+        -- length (a :: t) = Nat.succ t.length
+        simpa using hl
+  · intro hm
+    have hm1 : m = (1 : FreeMonoid (Fin n)) := by
+      simpa [Set.mem_singleton_iff] using hm
+    subst hm1
+    refine (theorem5_ball_mem_iff (n := n) 0 X 1).2 ?_
+    refine ⟨[], ?_, ?_, ?_⟩
+    · simp
+    · intro x hx
+      simpa using hx
+    · simp
+
+theorem theorem5_eventually_exp_le_pow_sqrt_div (K : ℕ) (hK : 0 < K) :
+    ∃ c : ℝ, 0 < c ∧
+      (∀ᶠ s : ℕ in atTop,
+        Real.exp (c * Real.sqrt (s : ℝ)) ≤ (2 ^ (Nat.sqrt (s / K)) : ℝ)) := by
+  classical
+  -- choose a small positive constant
+  let c : ℝ := Real.log 2 / (4 * Real.sqrt (K : ℝ))
+  refine ⟨c, ?_, ?_⟩
+  · -- positivity of c
+    have hlog : 0 < Real.log 2 := by
+      have h : (1 : ℝ) < 2 := by norm_num
+      exact Real.log_pos h
+    have hK0 : (0 : ℝ) < (K : ℝ) := by
+      exact_mod_cast hK
+    have hsqrtK : 0 < Real.sqrt (K : ℝ) := by
+      simpa using (Real.sqrt_pos.2 hK0)
+    have hden : 0 < (4 : ℝ) * Real.sqrt (K : ℝ) := by
+      have : (0 : ℝ) < (4 : ℝ) := by norm_num
+      exact mul_pos this hsqrtK
+    have : 0 < Real.log 2 / ((4 : ℝ) * Real.sqrt (K : ℝ)) := by
+      exact div_pos hlog hden
+    simpa [c] using this
+  · -- main eventual inequality
+    refine Filter.eventually_atTop.2 ?_
+    refine ⟨K, ?_⟩
+    intro s hs
+
+    -- rewrite the right-hand side as an exponential
+    have hpow : (2 ^ (Nat.sqrt (s / K)) : ℝ) = Real.exp ((Nat.sqrt (s / K) : ℝ) * Real.log 2) := by
+      have h2pos : (0 : ℝ) < 2 := by norm_num
+      calc
+        (2 ^ (Nat.sqrt (s / K)) : ℝ)
+            = ((2 : ℝ) ^ (Nat.sqrt (s / K))) := by
+                simpa using (Nat.cast_pow 2 (Nat.sqrt (s / K)))
+        _ = (Real.exp (Real.log 2)) ^ (Nat.sqrt (s / K)) := by
+                simp [Real.exp_log h2pos]
+        _ = Real.exp ((Nat.sqrt (s / K) : ℝ) * Real.log 2) := by
+                simpa [mul_comm, mul_left_comm, mul_assoc] using
+                  (Real.exp_nat_mul (Real.log 2) (Nat.sqrt (s / K))).symm
+
+    -- now compare exponents
+    rw [hpow]
+    apply (Real.exp_le_exp).2
+
+    have hlog : 0 < Real.log 2 := by
+      have h : (1 : ℝ) < 2 := by norm_num
+      exact Real.log_pos h
+    have hK0 : (0 : ℝ) < (K : ℝ) := by
+      exact_mod_cast hK
+    have hsqrtK : 0 < Real.sqrt (K : ℝ) := by
+      simpa using (Real.sqrt_pos.2 hK0)
+    have hsqrtK_ne : Real.sqrt (K : ℝ) ≠ 0 := ne_of_gt hsqrtK
+
+    -- first show an upper bound on √s
+    have hs_le_nat : s ≤ K * (s / K + 1) := by
+      exact Nat.le_of_lt (Nat.lt_mul_div_succ s hK)
+    have hs_le : (s : ℝ) ≤ (K : ℝ) * ((s / K + 1 : ℕ) : ℝ) := by
+      exact_mod_cast hs_le_nat
+
+    have hsqrt_le : Real.sqrt (s : ℝ) ≤ Real.sqrt (K : ℝ) * Real.sqrt ((s / K + 1 : ℕ) : ℝ) := by
+      have h1 : Real.sqrt (s : ℝ) ≤ Real.sqrt ((K : ℝ) * ((s / K + 1 : ℕ) : ℝ)) :=
+        Real.sqrt_le_sqrt hs_le
+      have hKnonneg : (0 : ℝ) ≤ (K : ℝ) := le_of_lt hK0
+      simpa [Real.sqrt_mul hKnonneg ((s / K + 1 : ℕ) : ℝ), mul_assoc] using h1
+
+    -- bound √(s/K+1) by Nat.sqrt (s/K) + 2
+    have hsq : Real.sqrt ((s / K + 1 : ℕ) : ℝ) ≤ (Nat.sqrt (s / K) : ℝ) + 2 := by
+      have h1 : Real.sqrt ((s / K + 1 : ℕ) : ℝ) ≤ (Nat.sqrt (s / K + 1) : ℝ) + 1 := by
+        simpa using (Real.real_sqrt_le_nat_sqrt_succ (a := s / K + 1))
+      have h2nat : Nat.sqrt (s / K + 1) ≤ Nat.sqrt (s / K) + 1 := by
+        simpa [Nat.succ_eq_add_one] using (Nat.sqrt_succ_le_succ_sqrt (s / K))
+      have h2 : (Nat.sqrt (s / K + 1) : ℝ) ≤ (Nat.sqrt (s / K) : ℝ) + 1 := by
+        exact_mod_cast h2nat
+      nlinarith
+
+    have hsqrt_bound : Real.sqrt (s : ℝ) ≤ Real.sqrt (K : ℝ) * ((Nat.sqrt (s / K) : ℝ) + 2) := by
+      have hKnn : 0 ≤ Real.sqrt (K : ℝ) := by positivity
+      have hmul : Real.sqrt (K : ℝ) * Real.sqrt ((s / K + 1 : ℕ) : ℝ)
+          ≤ Real.sqrt (K : ℝ) * ((Nat.sqrt (s / K) : ℝ) + 2) :=
+        mul_le_mul_of_nonneg_left hsq hKnn
+      exact le_trans hsqrt_le hmul
+
+    -- multiply by c
+    have hcpos : 0 < c := by
+      have hden : 0 < (4 : ℝ) * Real.sqrt (K : ℝ) := by
+        have : (0 : ℝ) < (4 : ℝ) := by norm_num
+        exact mul_pos this hsqrtK
+      exact div_pos hlog hden
+    have hc_nonneg : 0 ≤ c := le_of_lt hcpos
+
+    have h1 : c * Real.sqrt (s : ℝ) ≤ c * (Real.sqrt (K : ℝ) * ((Nat.sqrt (s / K) : ℝ) + 2)) := by
+      simpa [mul_assoc] using (mul_le_mul_of_nonneg_left hsqrt_bound hc_nonneg)
+
+    -- simplify the RHS to (log 2 / 4) * (Nat.sqrt ... + 2)
+    have hcsqrt : c * Real.sqrt (K : ℝ) = Real.log 2 / 4 := by
+      dsimp [c]
+      field_simp [hsqrtK_ne]
+
+    have h1' : c * (Real.sqrt (K : ℝ) * ((Nat.sqrt (s / K) : ℝ) + 2)) =
+        (Real.log 2 / 4) * ((Nat.sqrt (s / K) : ℝ) + 2) := by
+      calc
+        c * (Real.sqrt (K : ℝ) * ((Nat.sqrt (s / K) : ℝ) + 2))
+            = (c * Real.sqrt (K : ℝ)) * ((Nat.sqrt (s / K) : ℝ) + 2) := by
+                simp [mul_assoc]
+        _ = (Real.log 2 / 4) * ((Nat.sqrt (s / K) : ℝ) + 2) := by
+                simpa [hcsqrt]
+
+    have h2 : c * Real.sqrt (s : ℝ) ≤ (Real.log 2 / 4) * ((Nat.sqrt (s / K) : ℝ) + 2) :=
+      le_trans h1 (le_of_eq h1')
+
+    -- show Nat.sqrt(s/K) ≥ 1 for s ≥ K
+    have hdivpos : 0 < s / K := Nat.div_pos hs hK
+    have hsqrtpos : 0 < Nat.sqrt (s / K) := (Nat.sqrt_pos).2 hdivpos
+    have hnsqrt_ge1 : (1 : ℕ) ≤ Nat.sqrt (s / K) := Nat.succ_le_of_lt hsqrtpos
+    have hnsqrt_ge1R : (1 : ℝ) ≤ (Nat.sqrt (s / K) : ℝ) := by
+      exact_mod_cast hnsqrt_ge1
+
+    -- final arithmetic comparison
+    have h3 : (Real.log 2 / 4) * ((Nat.sqrt (s / K) : ℝ) + 2) ≤ (Nat.sqrt (s / K) : ℝ) * Real.log 2 := by
+      nlinarith [hlog, hnsqrt_ge1R]
+
+    exact le_trans h2 h3
+
+
+theorem theorem5_exists_two_distinct_letters (n : ℕ) (hn : 2 ≤ n) : ∃ a b : Fin n, a ≠ b := by
+  refine ⟨⟨0, ?_⟩, ⟨1, ?_⟩, ?_⟩
+  · exact lt_of_lt_of_le (by decide : 0 < 2) hn
+  · exact lt_of_lt_of_le (by decide : 1 < 2) hn
+  · intro h
+    exact Nat.zero_ne_one (congrArg Fin.val h)
+
+
+theorem theorem5_frequently_atTop_iff {p : ℕ → Prop} : (∃ᶠ r : ℕ in atTop, p r) ↔ ∀ a : ℕ, ∃ b ≥ a, p b := by
+  simpa using (Filter.frequently_atTop : (∃ᶠ r : ℕ in atTop, p r) ↔ ∀ a : ℕ, ∃ b ≥ a, p b)
+
+
+theorem theorem5_length_pow_of {n : ℕ} (a : Fin n) (k : ℕ) : ((FreeMonoid.of a : FreeMonoid (Fin n)) ^ k).length = k := by
+  induction k with
+  | zero =>
+      simp
+  | succ k ih =>
+      simpa [pow_succ, ih, FreeMonoid.length_mul, Nat.add_assoc, Nat.add_left_comm, Nat.add_comm]
+
+theorem theorem5_factor_contains_s0_eq_one (n : ℕ) (hn : 2 ≤ n)
+    (M : Set (FreeMonoid (Fin n))) (t : FreeMonoid (Fin n))
+    (hs1univ : Ball 1 (M ∪ (A n)) = Set.univ)
+    (ht : t ∉ Ball 0 (M ∪ (A n)))
+    (L : ℕ) (x : FreeMonoid (Fin n)) (hx : x ∈ Sphere n L) :
+    ∃ p q m : FreeMonoid (Fin n),
+      p.length ≤ t.length ∧ q.length ≤ t.length ∧ m ∈ M ∧ m = p * x * q := by
+  classical
+  -- From `ht` and `Ball 0 = {1}` we get `t ≠ 1`, hence `1 ≤ t.length`.
+  have htne : t ≠ (1 : FreeMonoid (Fin n)) := by
+    have ht' : t ∉ ({(1 : FreeMonoid (Fin n))} : Set (FreeMonoid (Fin n))) := by
+      simpa [theorem5_ball_zero_eq_singleton] using ht
+    simpa [Set.mem_singleton_iff] using ht'
+  have htlen_ge_one : 1 ≤ t.length := by
+    have htlen_ne_zero : t.length ≠ 0 := by
+      -- contraposition of `FreeMonoid.length_eq_zero : t.length = 0 ↔ t = 1`
+      exact mt (FreeMonoid.length_eq_zero (a := t)).1 htne
+    exact Nat.succ_le_of_lt (Nat.pos_of_ne_zero htlen_ne_zero)
+
+  have hxlen : x.length = L := by
+    simpa [Sphere] using hx
+
+  -- Split on the length `L` of `x`.
+  cases L with
+  | zero =>
+      have hx0 : x.length = 0 := by simpa using hxlen
+      have hx1 : x = (1 : FreeMonoid (Fin n)) := (FreeMonoid.length_eq_zero (a := x)).1 hx0
+      rcases theorem5_exists_two_distinct_letters n hn with ⟨a, b, hab⟩
+      refine ⟨FreeMonoid.of a, FreeMonoid.of b, (FreeMonoid.of a) * (FreeMonoid.of b), ?_, ?_, ?_, ?_⟩
+      · -- p.length ≤ t.length
+        simpa [FreeMonoid.length_of] using htlen_ge_one
+      · -- q.length ≤ t.length
+        simpa [FreeMonoid.length_of] using htlen_ge_one
+      · -- m ∈ M
+        have hm_ge : 2 ≤ ((FreeMonoid.of a : FreeMonoid (Fin n)) * FreeMonoid.of b).length := by
+          -- length is 1+1
+          -- (simp closes `2 ≤ 2`)
+          simp [FreeMonoid.length_mul, FreeMonoid.length_of]
+        exact theorem5_ball_one_univ_imp_mem_M_of_length_ge_two n M hs1univ
+          ((FreeMonoid.of a : FreeMonoid (Fin n)) * FreeMonoid.of b) hm_ge
+      · -- m = p * x * q
+        -- use `x = 1`
+        simpa [hx1, mul_assoc]
+
+  | succ L1 =>
+      cases L1 with
+      | zero =>
+          -- L = 1
+          have hx1len : x.length = 1 := by simpa using hxlen
+          rcases theorem5_exists_two_distinct_letters n hn with ⟨a, b, hab⟩
+          refine ⟨(1 : FreeMonoid (Fin n)), FreeMonoid.of a, x * FreeMonoid.of a, ?_, ?_, ?_, ?_⟩
+          · -- p.length ≤ t.length
+            simp [FreeMonoid.length_one]
+          · -- q.length ≤ t.length
+            simpa [FreeMonoid.length_of] using htlen_ge_one
+          · -- m ∈ M
+            have hm_ge : 2 ≤ (x * FreeMonoid.of a).length := by
+              simp [FreeMonoid.length_mul, FreeMonoid.length_of, hx1len]
+            exact theorem5_ball_one_univ_imp_mem_M_of_length_ge_two n M hs1univ (x * FreeMonoid.of a) hm_ge
+          · -- m = p * x * q
+            simp [mul_assoc]
+
+      | succ L2 =>
+          -- L ≥ 2
+          have hx_ge : 2 ≤ x.length := by
+            -- since `L = succ (succ L2)`
+            have : 2 ≤ Nat.succ (Nat.succ L2) := by
+              exact Nat.succ_le_succ (Nat.succ_le_succ (Nat.zero_le L2))
+            -- rewrite `x.length` using `hxlen`
+            simpa [hxlen] using this
+          have hxM : x ∈ M :=
+            theorem5_ball_one_univ_imp_mem_M_of_length_ge_two n M hs1univ x hx_ge
+          refine ⟨(1 : FreeMonoid (Fin n)), (1 : FreeMonoid (Fin n)), x, ?_, ?_, hxM, ?_⟩
+          · -- p.length ≤ t.length
+            simp [FreeMonoid.length_one]
+          · -- q.length ≤ t.length
+            simp [FreeMonoid.length_one]
+          · -- m = p * x * q
+            simp [mul_assoc]
+
+
+theorem theorem5_factor_contains_s0_eq_one_X (n : ℕ) (hn : 2 ≤ n)
+    (M : Set (FreeMonoid (Fin n))) (t : FreeMonoid (Fin n))
+    (hs1univ : Ball 1 (M ∪ (A n)) = Set.univ)
+    (ht : t ∉ Ball 0 (M ∪ (A n)))
+    (L : ℕ) (x : FreeMonoid (Fin n)) (hx : x ∈ Sphere n L) :
+    ∃ p q m : FreeMonoid (Fin n),
+      p.length ≤ t.length ∧ q.length ≤ t.length ∧ m ∈ (M ∪ (A n)) ∧ m = p * x * q := by
+  classical
+  rcases theorem5_factor_contains_s0_eq_one n hn M t hs1univ ht L x hx with
+    ⟨p, q, m, hp, hq, hmM, hmEq⟩
+  refine ⟨p, q, m, hp, hq, ?_, hmEq⟩
+  exact Or.inl hmM
+
+
+theorem theorem5_no_prefix_prod_eq_marker {n : ℕ} (X : Set (FreeMonoid (Fin n))) (s0 : ℕ) (t : FreeMonoid (Fin n))
+    (l : List (FreeMonoid (Fin n)))
+    (hl_len : l.length ≤ s0)
+    (hl_mem : ∀ u : FreeMonoid (Fin n), u ∈ l → u ∈ X)
+    (ht : t ∉ Ball (s0 - 1) X) :
+    ∀ l₁ l₂ : List (FreeMonoid (Fin n)), l = l₁ ++ l₂ → l₂ ≠ [] → l₁.prod ≠ t := by
+  intro l₁ l₂ hl_split hl2_ne
+  intro hl1_prod_eq
+
+  have hl1_mem : ∀ u : FreeMonoid (Fin n), u ∈ l₁ → u ∈ X := by
+    intro u hu
+    apply hl_mem u
+    have : u ∈ l₁ ++ l₂ := by
+      exact List.mem_append.2 (Or.inl hu)
+    simpa [hl_split] using this
+
+  have ht_in_ball_len : t ∈ Ball l₁.length X := by
+    refine (theorem5_ball_mem_iff (n := n) (R := l₁.length) (X := X) (m := t)).2 ?_
+    refine ⟨l₁, le_rfl, hl1_mem, hl1_prod_eq⟩
+
+  have hl1_len_le : l₁.length ≤ s0 - 1 := by
+    have hl2_pos : 0 < l₂.length :=
+      (List.length_pos_iff_ne_nil (l := l₂)).2 hl2_ne
+
+    have hl1_lt_l : l₁.length < l.length := by
+      have : l₁.length < (l₁ ++ l₂).length := by
+        have : l₁.length < l₁.length + l₂.length :=
+          (lt_add_iff_pos_right (a := l₁.length) (b := l₂.length)).2 hl2_pos
+        simpa [List.length_append] using this
+      simpa [hl_split] using this
+
+    have hl1_lt_s0 : l₁.length < s0 := lt_of_lt_of_le hl1_lt_l hl_len
+    exact Nat.le_pred_of_lt hl1_lt_s0
+
+  have ht_in_ball_s0 : t ∈ Ball (s0 - 1) X := by
+    have hsub : Ball l₁.length X ⊆ Ball (s0 - 1) X :=
+      theorem5_ball_mono_R_nat (n := n) (R := l₁.length) (R' := s0 - 1) (X := X) hl1_len_le
+    exact hsub ht_in_ball_len
+
+  exact ht ht_in_ball_s0
+
+theorem theorem5_no_suffix_prod_eq_marker {n : ℕ} (X : Set (FreeMonoid (Fin n))) (s0 : ℕ) (t : FreeMonoid (Fin n))
+    (l : List (FreeMonoid (Fin n)))
+    (hl_len : l.length ≤ s0)
+    (hl_mem : ∀ u : FreeMonoid (Fin n), u ∈ l → u ∈ X)
+    (ht : t ∉ Ball (s0 - 1) X) :
+    ∀ l₁ l₂ : List (FreeMonoid (Fin n)), l = l₁ ++ l₂ → l₁ ≠ [] → l₂.prod ≠ t := by
+  intro l₁ l₂ hl hne₁
+  intro hprod
+  apply ht
+  refine ⟨l₂, ?_, ?_, ?_⟩
+  ·
+    have hlen : l₁.length + l₂.length ≤ s0 := by
+      simpa [hl, List.length_append] using hl_len
+    have hpos : 0 < l₁.length := (List.length_pos_iff_ne_nil).2 hne₁
+    omega
+  ·
+    intro u hu
+    apply hl_mem u
+    have : u ∈ l₁ ++ l₂ := (List.mem_append).2 (Or.inr hu)
+    simpa [hl] using this
+  ·
+    simpa [hprod]
+
+theorem theorem5_not_bddAbove_expansionSet_iff_ball_eq_univ (n : ℕ) (M : Set (FreeMonoid (Fin n))) (s : ℕ) :
+    (¬ BddAbove { r : ℕ | Ball r (A n) ⊆ Ball s (M ∪ (A n)) }) ↔
+      Ball s (M ∪ (A n)) = Set.univ := by
+  classical
+  -- abbreviate the set of radii
+  let S : Set ℕ := { r : ℕ | Ball r (A n) ⊆ Ball s (M ∪ A n) }
+  constructor
+  · intro hSbdd
+    have h_unbdd : ∀ R : ℕ, ∃ r ∈ S, R < r :=
+      (not_bddAbove_iff (s := S)).1 (by simpa [S] using hSbdd)
+    -- show the ball is everything
+    ext w
+    constructor
+    · intro hw
+      simp
+    · intro _
+      obtain ⟨r, hrS, hRlt⟩ := h_unbdd w.length
+      have hlen : w.length ≤ r := le_of_lt hRlt
+      have hw_mem : w ∈ Ball r (A n) := (theorem5_ball_A_iff_length_le n r w).2 hlen
+      exact hrS hw_mem
+  · intro hball
+    have h_unbdd : ∀ R : ℕ, ∃ r ∈ S, R < r := by
+      intro R
+      refine ⟨R + 1, ?_, Nat.lt_succ_self R⟩
+      -- subset holds because the target ball is univ
+      have : Ball s (M ∪ A n) = Set.univ := hball
+      simp [S, this]
+    have : ¬BddAbove S := (not_bddAbove_iff (s := S)).2 h_unbdd
+    simpa [S] using this
+
+theorem theorem5_not_tendsto_zero_of_exists_pos_frequently_ge {f : ℕ → ℝ} :
+    (∃ ε : ℝ, 0 < ε ∧ (∃ᶠ r : ℕ in atTop, ε ≤ f r)) →
+      ¬ Tendsto f atTop (nhds 0) := by
+  intro h
+  rcases h with ⟨ε, hεpos, hεfreq⟩
+  refine (Filter.not_tendsto_iff_exists_frequently_notMem).2 ?_
+  refine ⟨Set.Iio ε, ?_, ?_⟩
+  · have h0 : (0 : ℝ) ∈ Set.Iio ε := by
+      simpa [Set.mem_Iio] using hεpos
+    exact (isOpen_Iio.mem_nhds h0)
+  · refine hεfreq.mono ?_
+    intro r hr
+    exact (not_lt_of_ge hr)
+
+
+theorem theorem5_singleton_ne_one_FreeMonoid {α : Type*} (a : α) : ([a] : FreeMonoid α) ≠ (1 : FreeMonoid α) := by
+  intro h
+  have h' := congrArg FreeMonoid.toList h
+  simpa using h'
+
+theorem theorem5_ball_eq_univ_imp_exists_marker (n : ℕ) (hn : 2 ≤ n) (M : Set (FreeMonoid (Fin n))) (s : ℕ)
+    (hball : Ball s (M ∪ (A n)) = Set.univ) :
+    ∃ s0 : ℕ, 0 < s0 ∧ Ball s0 (M ∪ (A n)) = Set.univ ∧
+      ∃ t : FreeMonoid (Fin n), t ∉ Ball (s0 - 1) (M ∪ (A n)) := by
+  classical
+  let X : Set (FreeMonoid (Fin n)) := M ∪ (A n)
+  have hex : ∃ t : ℕ, Ball t X = Set.univ := by
+    refine ⟨s, ?_⟩
+    simpa [X] using hball
+  let s0 : ℕ := Nat.find hex
+  have hs0 : Ball s0 X = Set.univ := by
+    simpa [s0] using (Nat.find_spec hex)
+  have hs0pos : 0 < s0 := by
+    have hs0ne : s0 ≠ 0 := by
+      intro hzero
+      have h0 : Ball 0 X = (Set.univ : Set (FreeMonoid (Fin n))) := by
+        simpa [s0, hzero] using hs0
+      have huniv : (Set.univ : Set (FreeMonoid (Fin n))) = ({1} : Set (FreeMonoid (Fin n))) := by
+        calc
+          (Set.univ : Set (FreeMonoid (Fin n))) = Ball 0 X := by
+            simpa using h0.symm
+          _ = ({1} : Set (FreeMonoid (Fin n))) := by
+            simpa using (theorem5_ball_zero_eq_singleton (n := n) X)
+      have hn0 : 0 < n := lt_of_lt_of_le Nat.zero_lt_two hn
+      let a : Fin n := ⟨0, hn0⟩
+      have ha_mem : ([a] : FreeMonoid (Fin n)) ∈ (Set.univ : Set (FreeMonoid (Fin n))) := by
+        trivial
+      have ha_mem' : ([a] : FreeMonoid (Fin n)) ∈ ({1} : Set (FreeMonoid (Fin n))) := by
+        simpa [huniv] using ha_mem
+      have ha_eq : ([a] : FreeMonoid (Fin n)) = (1 : FreeMonoid (Fin n)) := by
+        simpa [Set.mem_singleton_iff] using ha_mem'
+      exact theorem5_singleton_ne_one_FreeMonoid (α := Fin n) a ha_eq
+    exact Nat.pos_of_ne_zero hs0ne
+  have hprev : Ball (s0 - 1) X ≠ Set.univ := by
+    intro hprev_eq
+    have hle : s0 ≤ s0 - 1 := by
+      have hmin := Nat.find_min' hex (m := s0 - 1) hprev_eq
+      simpa [s0] using hmin
+    have hlt : s0 - 1 < s0 := Nat.sub_lt_self Nat.one_pos hs0pos
+    exact (Nat.not_lt_of_ge hle) hlt
+  rcases (Set.ne_univ_iff_exists_not_mem (s := Ball (s0 - 1) X)).1 hprev with ⟨t, ht⟩
+  refine ⟨s0, hs0pos, ?_, ?_⟩
+  · simpa [X] using hs0
+  · refine ⟨t, ?_⟩
+    simpa [X] using ht
+
+theorem theorem5_ball_eq_univ_imp_pos (n : ℕ) (hn : 2 ≤ n)
+    (X : Set (FreeMonoid (Fin n))) (R : ℕ)
+    (hR : Ball R X = Set.univ) : 0 < R := by
+  have hne : R ≠ 0 := by
+    intro hR0
+    have hBall0 : Ball 0 X = (Set.univ : Set (FreeMonoid (Fin n))) := by
+      simpa [hR0] using hR
+    have hsingleton : ({(1 : FreeMonoid (Fin n))} : Set (FreeMonoid (Fin n))) = Set.univ := by
+      calc
+        ({(1 : FreeMonoid (Fin n))} : Set (FreeMonoid (Fin n))) = Ball 0 X := by
+          simpa using (theorem5_ball_zero_eq_singleton (n := n) X).symm
+        _ = Set.univ := hBall0
+    have hnpos : 0 < n := lt_of_lt_of_le Nat.zero_lt_two hn
+    let a : Fin n := ⟨0, hnpos⟩
+    have ha_univ : ([a] : FreeMonoid (Fin n)) ∈ (Set.univ : Set (FreeMonoid (Fin n))) := by
+      simp
+    have ha_single : ([a] : FreeMonoid (Fin n)) ∈ ({(1 : FreeMonoid (Fin n))} : Set (FreeMonoid (Fin n))) := by
+      -- rewrite membership using the set equality
+      have h' := ha_univ
+      rw [hsingleton.symm] at h'
+      exact h'
+    have ha_eq : ([a] : FreeMonoid (Fin n)) = (1 : FreeMonoid (Fin n)) := by
+      simpa [Set.mem_singleton_iff] using ha_single
+    exact (theorem5_singleton_ne_one_FreeMonoid a) ha_eq
+  exact Nat.pos_of_ne_zero hne
+
+
+theorem theorem5_factor_contains (n : ℕ) (hn : 2 ≤ n)
+    (M : Set (FreeMonoid (Fin n))) (s0 : ℕ) (t : FreeMonoid (Fin n))
+    (hs0univ : Ball s0 (M ∪ (A n)) = Set.univ)
+    (ht : t ∉ Ball (s0 - 1) (M ∪ (A n)))
+    (L : ℕ) (x : FreeMonoid (Fin n)) (hx : x ∈ Sphere n L) :
+    ∃ p q m : FreeMonoid (Fin n),
+      p.length ≤ t.length ∧ q.length ≤ t.length ∧ m ∈ (M ∪ (A n)) ∧ m = p * x * q := by
+  -- **Key point:** in the `s0 = 1` branch use `theorem5_factor_contains_s0_eq_one_X` (NOT the old `_s0_eq_one` lemma), and in the `s0 ≥ 2` branch you must do the marker+padding extraction (do not attempt to derive `Ball 1 X = univ`).
+  -- 
+  -- Lean skeleton:
+  -- ```lean
+  -- classical
+  -- let X : Set (FreeMonoid (Fin n)) := M ∪ A n
+  -- have hs0pos : 0 < s0 :=
+  --   theorem5_ball_eq_univ_imp_pos (n := n) hn (X := X) s0 (by simpa [X] using hs0univ)
+  -- have hs0ne : s0 ≠ 0 := Nat.ne_of_gt hs0pos
+  -- have hs0ge1 : 1 ≤ s0 := Nat.succ_le_iff.mp hs0pos
+  -- by_cases hs1 : s0 = 1
+  -- · subst hs1
+  --   -- now goal is exactly theorem5_factor_contains_s0_eq_one_X
+  --   exact theorem5_factor_contains_s0_eq_one_X (n := n) hn M t (by simpa [X] using hs0univ)
+  --     (by simpa [X] using ht) L x hx
+  -- · have hs0ge2 : 2 ≤ s0 := by omega
+  --   -- choose a ≠ b, define u,v,w, get l from ball_mem_iff, apply no_prefix/no_suffix,
+  --   -- then do the toList/flatten boundary extraction to get m = p*x*q with bounds.
+  -- ```
+  -- 
+  -- Extraction hints:
+  -- - Convert `l.prod = w` into a list equality with `FreeMonoid.toList_prod` and `FreeMonoid.toList_mul`.
+  -- - Boundaries of factors correspond to the lengths of `(l.take i).prod` (use `FreeMonoid.length_mul` and `List.take_append_drop`).
+  -- - Use `theorem5_no_prefix_prod_eq_marker` / `theorem5_no_suffix_prod_eq_marker` to rule out boundaries at the marker locations.
+  -- - Once you find a factor `m ∈ l` containing the whole `x` block, set `p,q` to the prefix/suffix of `m` around that block; show `p.length,q.length ≤ t.length` using `theorem5_length_pow_of` and basic `take/drop` length facts.
+  sorry
+
+theorem theorem5_factor_contains_mem_M_of_L_ge_two (n : ℕ) (hn : 2 ≤ n)
+    (M : Set (FreeMonoid (Fin n))) (s0 : ℕ) (t : FreeMonoid (Fin n))
+    (hs0univ : Ball s0 (M ∪ (A n)) = Set.univ)
+    (ht : t ∉ Ball (s0 - 1) (M ∪ (A n)))
+    (L : ℕ) (hL : 2 ≤ L) (x : FreeMonoid (Fin n)) (hx : x ∈ Sphere n L) :
+    ∃ p q m : FreeMonoid (Fin n),
+      p.length ≤ t.length ∧ q.length ≤ t.length ∧ m ∈ M ∧ m = p * x * q := by
+  classical
+  rcases theorem5_factor_contains n hn M s0 t hs0univ ht L x hx with ⟨p, q, m, hp, hq, hm_mem, hm_eq⟩
+  have hxlen : x.length = L := by
+    -- hopefully `Sphere n L` is the set of words of length `L`
+    simpa [Sphere] using hx
+  have hm_len : m.length = p.length + L + q.length := by
+    -- expand length of the factorization
+    -- `m = p * x * q`
+    -- and `length_mul` should turn multiplication into addition of lengths
+    simpa [hm_eq, hxlen, Nat.add_assoc, Nat.add_left_comm, Nat.add_comm] using
+      congrArg FreeMonoid.length hm_eq
+  have hLm : L ≤ m.length := by
+    -- from `m.length = p.length + L + q.length`
+    -- and `p.length,q.length ≥ 0`
+    omega
+  have h2m : 2 ≤ m.length := le_trans hL hLm
+  have hmM : m ∈ M := by
+    rcases hm_mem with hmM | hmA
+    · exact hmM
+    · have hm1 : m.length = 1 := theorem5_A_length_one n m hmA
+      omega
+  refine ⟨p, q, m, hp, hq, hmM, hm_eq⟩
+
+theorem theorem5_ball_eq_univ_imp_ncard_window (n : ℕ) (hn : 2 ≤ n)
+    (M : Set (FreeMonoid (Fin n))) (s : ℕ)
+    (hball : Ball s (M ∪ (A n)) = Set.univ) :
+    ∃ K C : ℕ, 0 < C ∧
+      (∃ᶠ L : ℕ in atTop,
+        ∃ r : ℕ, L ≤ r ∧ r ≤ L + K ∧
+          (n ^ L ≤ C * Set.ncard (M ∩ Sphere n r))) := by
+  classical
+  let X : Set (FreeMonoid (Fin n)) := M ∪ A n
+  rcases theorem5_ball_eq_univ_imp_exists_marker (n := n) (hn := hn) (M := M) (s := s)
+      (hball := hball) with ⟨s0, hs0pos, hs0univ, t, ht⟩
+  let K : ℕ := 2 * t.length
+  let P : Set (FreeMonoid (Fin n)) := {p | p.length ≤ t.length}
+  let Q : Set (FreeMonoid (Fin n)) := {q | q.length ≤ t.length}
+  have hPfin : P.Finite := by
+    simpa [P] using (List.finite_length_le (α := Fin n) (n := t.length))
+  have hQfin : Q.Finite := by
+    simpa [Q] using (List.finite_length_le (α := Fin n) (n := t.length))
+  have hPnonempty : P.Nonempty := by
+    refine ⟨(1 : FreeMonoid (Fin n)), ?_⟩
+    simp [P]
+  have hQnonempty : Q.Nonempty := by
+    refine ⟨(1 : FreeMonoid (Fin n)), ?_⟩
+    simp [Q]
+  have hPpos : 0 < Set.ncard P := (Set.ncard_pos hPfin).2 hPnonempty
+  have hQpos : 0 < Set.ncard Q := (Set.ncard_pos hQfin).2 hQnonempty
+  let C0 : ℕ := Set.ncard P * Set.ncard Q
+  let C : ℕ := C0 * (K + 1)
+  refine ⟨K, C, ?_, ?_⟩
+  · have hC0pos : 0 < C0 := by
+      simpa [C0] using Nat.mul_pos hPpos hQpos
+    have hKpos : 0 < K + 1 := Nat.succ_pos K
+    have hCpos : 0 < C := Nat.mul_pos hC0pos hKpos
+    simpa [C] using hCpos
+  · have hall : ∀ L : ℕ, 2 ≤ L →
+        ∃ r : ℕ, L ≤ r ∧ r ≤ L + K ∧ n ^ L ≤ C * Set.ncard (M ∩ Sphere n r) := by
+      intro L hL
+      -- define U: union of M∩Sphere n (L+d) for d ≤ K
+      let U : Set (FreeMonoid (Fin n)) :=
+        ⋃ d ∈ Finset.range (K + 1), (M ∩ Sphere n (L + d))
+
+      -- existence of decomposition for each x in Sphere n L
+      have hex : ∀ x : FreeMonoid (Fin n), x ∈ Sphere n L →
+          ∃ p q m : FreeMonoid (Fin n),
+            p ∈ P ∧ q ∈ Q ∧ m ∈ (M ∩ Sphere n (L + (p.length + q.length))) ∧ m = p * x * q := by
+        intro x hx
+        rcases theorem5_factor_contains_mem_M_of_L_ge_two (n := n) (hn := hn) (M := M) (s0 := s0)
+            (t := t) (hs0univ := hs0univ) (ht := ht) (L := L) (hL := hL) (x := x) (hx := hx) with
+          ⟨p, q, m, hp, hq, hmM, hmEq⟩
+        have hpP : p ∈ P := by
+          simp [P, hp]
+        have hqQ : q ∈ Q := by
+          simp [Q, hq]
+        have hxLen : x.length = L := by
+          simpa [Sphere] using hx
+        have hmLen : m.length = p.length + x.length + q.length := by
+          have h := congrArg FreeMonoid.length hmEq
+          simpa [mul_assoc, FreeMonoid.length_mul, Nat.add_assoc, Nat.add_left_comm, Nat.add_comm] using h
+        have hmLen' : m.length = L + (p.length + q.length) := by
+          calc
+            m.length = p.length + x.length + q.length := hmLen
+            _ = p.length + L + q.length := by
+              simpa [hxLen, Nat.add_assoc]
+            _ = L + (p.length + q.length) := by
+              omega
+        have hmSphere : m ∈ Sphere n (L + (p.length + q.length)) := by
+          simp [Sphere, hmLen']
+        refine ⟨p, q, m, hpP, hqQ, ?_, hmEq⟩
+        exact ⟨hmM, hmSphere⟩
+
+      classical
+      choose p q m hp hq hm hmEq using hex
+
+      -- define f by choice, defaulting outside the sphere
+      let f : FreeMonoid (Fin n) → (FreeMonoid (Fin n) × FreeMonoid (Fin n)) × FreeMonoid (Fin n) :=
+        fun x =>
+          if hx : x ∈ Sphere n L then
+            ((p x hx, q x hx), m x hx)
+          else
+            ((1, 1), 1)
+
+      -- MapsTo
+      have hfMaps : Set.MapsTo f (Sphere n L) ((P ×ˢ Q) ×ˢ U) := by
+        intro x hx
+        have hp' : p x hx ∈ P := hp x hx
+        have hq' : q x hx ∈ Q := hq x hx
+        have hm' : m x hx ∈ M ∩ Sphere n (L + ((p x hx).length + (q x hx).length)) := by
+          -- hm gives L + (p.len + q.len)
+          simpa [Nat.add_assoc] using hm x hx
+        have hdle : (p x hx).length + (q x hx).length ≤ K := by
+          have hpLen : (p x hx).length ≤ t.length := by
+            have : p x hx ∈ P := hp'
+            simpa [P] using this
+          have hqLen : (q x hx).length ≤ t.length := by
+            have : q x hx ∈ Q := hq'
+            simpa [Q] using this
+          have : (p x hx).length + (q x hx).length ≤ t.length + t.length :=
+            Nat.add_le_add hpLen hqLen
+          simpa [K, two_mul, Nat.add_assoc, Nat.add_left_comm, Nat.add_comm] using this
+        have hdMem : (p x hx).length + (q x hx).length ∈ Finset.range (K + 1) :=
+          Finset.mem_range.2 (Nat.lt_succ_of_le hdle)
+        have hmU : m x hx ∈ U := by
+          refine Set.mem_iUnion₂.2 ?_
+          refine ⟨(p x hx).length + (q x hx).length, hdMem, ?_⟩
+          -- need m ∈ M ∩ Sphere n (L + d)
+          simpa using hm'
+        -- unfold f with hx true
+        simpa [f, hx, hp', hq', hmU]
+
+      -- InjOn
+      have hfInj : Set.InjOn f (Sphere n L) := by
+        intro x1 hx1 x2 hx2 hfx
+        have hfx' : ((p x1 hx1, q x1 hx1), m x1 hx1) = ((p x2 hx2, q x2 hx2), m x2 hx2) := by
+          simpa [f, hx1, hx2] using hfx
+        have hpEq : p x1 hx1 = p x2 hx2 := by
+          have := congrArg (fun y => y.1.1) hfx'
+          simpa using this
+        have hqEq : q x1 hx1 = q x2 hx2 := by
+          have := congrArg (fun y => y.1.2) hfx'
+          simpa using this
+        have hmEq' : m x1 hx1 = m x2 hx2 := by
+          have := congrArg (fun y => y.2) hfx'
+          simpa using this
+        have hx1Eq : m x1 hx1 = p x1 hx1 * x1 * q x1 hx1 := hmEq x1 hx1
+        have hx2Eq : m x2 hx2 = p x2 hx2 * x2 * q x2 hx2 := hmEq x2 hx2
+        have hmain : p x1 hx1 * x1 * q x1 hx1 = p x1 hx1 * x2 * q x1 hx1 := by
+          calc
+            p x1 hx1 * x1 * q x1 hx1 = m x1 hx1 := by
+              simpa [hx1Eq]
+            _ = m x2 hx2 := by
+              simpa [hmEq']
+            _ = p x2 hx2 * x2 * q x2 hx2 := by
+              simpa [hx2Eq]
+            _ = p x1 hx1 * x2 * q x1 hx1 := by
+              simpa [hpEq, hqEq, mul_assoc]
+        have hcancel1 : x1 * q x1 hx1 = x2 * q x1 hx1 := by
+          apply mul_left_cancel (a := p x1 hx1)
+          simpa [mul_assoc] using hmain
+        exact mul_right_cancel hcancel1
+
+      -- finiteness of target
+      have hUfin : U.Finite := by
+        have hsub : U ⊆ {w : FreeMonoid (Fin n) | w.length ≤ L + K} := by
+          intro w hw
+          rcases (Set.mem_iUnion₂.1 hw) with ⟨d, hd, hwd⟩
+          have hlen : w.length = L + d := by
+            have : w ∈ Sphere n (L + d) := hwd.2
+            simpa [Sphere] using this
+          have hdle : d ≤ K := by
+            have hd' : d < K + 1 := Finset.mem_range.1 hd
+            exact Nat.le_of_lt_succ hd'
+          have hLe : L + d ≤ L + K := Nat.add_le_add_left hdle L
+          simpa [hlen] using hLe
+        have hfin : ({w : FreeMonoid (Fin n) | w.length ≤ L + K}).Finite := by
+          simpa using (List.finite_length_le (α := Fin n) (n := L + K))
+        exact hfin.subset hsub
+      have hTfin : ((P ×ˢ Q) ×ˢ U).Finite := (hPfin.prod hQfin).prod hUfin
+
+      -- cardinality bound via injection
+      have hcard : Set.ncard (Sphere n L) ≤ Set.ncard ((P ×ˢ Q) ×ˢ U) := by
+        exact Set.ncard_le_ncard_of_injOn (s := Sphere n L) (t := (P ×ˢ Q) ×ˢ U) f hfMaps hfInj hTfin
+
+      -- rewrite target ncard
+      have hcard' : Set.ncard (Sphere n L) ≤ Set.ncard P * Set.ncard Q * Set.ncard U := by
+        simpa [Set.ncard_prod, Nat.mul_assoc, Nat.mul_left_comm, Nat.mul_comm] using hcard
+
+      have hSphere : Set.ncard (Sphere n L) = n ^ L := theorem5_ncard_Sphere n L
+
+      have hmainIneq : n ^ L ≤ C0 * Set.ncard U := by
+        have : n ^ L ≤ Set.ncard P * Set.ncard Q * Set.ncard U := by
+          simpa [hSphere] using hcard'
+        simpa [C0, Nat.mul_assoc, Nat.mul_left_comm, Nat.mul_comm] using this
+
+      -- bound ncard U by sum
+      let fcount : ℕ → ℕ := fun d => Set.ncard (M ∩ Sphere n (L + d))
+      have hUle : Set.ncard U ≤ ∑ d ∈ Finset.range (K + 1), fcount d := by
+        simpa [U, fcount] using
+          (Finset.set_ncard_biUnion_le (Finset.range (K + 1)) (fun d => M ∩ Sphere n (L + d)))
+
+      -- choose d0 attaining sup
+      have hnonempty : (Finset.range (K + 1)).Nonempty := by
+        simpa [Nat.succ_eq_add_one] using (Finset.nonempty_range_succ K)
+
+      rcases Finset.exists_mem_eq_sup (Finset.range (K + 1)) hnonempty fcount with ⟨d0, hd0mem, hd0sup⟩
+      let r : ℕ := L + d0
+      have hrLower : L ≤ r := Nat.le_add_right L d0
+      have hrUpper : r ≤ L + K := by
+        have hd0lt : d0 < K + 1 := Finset.mem_range.1 hd0mem
+        have hd0le : d0 ≤ K := Nat.le_of_lt_succ hd0lt
+        dsimp [r]
+        exact Nat.add_le_add_left hd0le L
+
+      -- sum ≤ card * sup
+      have hsum_le_sup : (∑ d ∈ Finset.range (K + 1), fcount d) ≤
+          (K + 1) * (Finset.range (K + 1)).sup fcount := by
+        have hbound : ∀ d ∈ Finset.range (K + 1), fcount d ≤ (Finset.range (K + 1)).sup fcount := by
+          intro d hd
+          exact Finset.le_sup hd
+        have h := Finset.sum_le_card_nsmul (s := Finset.range (K + 1)) (f := fcount)
+          (n := (Finset.range (K + 1)).sup fcount) hbound
+        -- card (range (K+1)) = K+1 and nsmul is multiplication
+        simpa [Finset.card_range, Nat.nsmul_eq_mul, Nat.mul_assoc, Nat.mul_left_comm, Nat.mul_comm] using h
+
+      have hUle' : Set.ncard U ≤ (K + 1) * fcount d0 := by
+        have : Set.ncard U ≤ (K + 1) * (Finset.range (K + 1)).sup fcount := le_trans hUle hsum_le_sup
+        simpa [hd0sup] using this
+
+      have hfinal : n ^ L ≤ C * fcount d0 := by
+        have : n ^ L ≤ C0 * ((K + 1) * fcount d0) := by
+          have h1 : C0 * Set.ncard U ≤ C0 * ((K + 1) * fcount d0) := Nat.mul_le_mul_left C0 hUle'
+          exact le_trans hmainIneq h1
+        simpa [C, Nat.mul_assoc, Nat.mul_left_comm, Nat.mul_comm] using this
+
+      refine ⟨r, hrLower, hrUpper, ?_⟩
+      simpa [fcount, r] using hfinal
+
+    -- turn ∀L≥2 into frequently
+    refine (theorem5_frequently_atTop_iff (p := fun L : ℕ =>
+        ∃ r : ℕ, L ≤ r ∧ r ≤ L + K ∧ n ^ L ≤ C * Set.ncard (M ∩ Sphere n r))).2 ?_
+    intro a
+    refine ⟨max a 2, ?_, ?_⟩
+    · exact le_max_left a 2
+    · have hL : 2 ≤ max a 2 := le_max_right a 2
+      simpa using hall (max a 2) hL
+
+theorem theorem5_ball_eq_univ_imp_frequently_density_ge (n : ℕ) (hn : 2 ≤ n)
+    (M : Set (FreeMonoid (Fin n))) (s : ℕ)
+    (hball : Ball s (M ∪ (A n)) = Set.univ) :
+    ∃ ε : ℝ, 0 < ε ∧
+      (∃ᶠ r : ℕ in atTop,
+        ε ≤
+          ((Set.ncard (M ∩ Sphere n r) : ℝ) /
+            (Set.ncard (Sphere n r) : ℝ))) := by
+  classical
+  -- Obtain the window size `K` and constant `C` from the weakened window lemma.
+  rcases theorem5_ball_eq_univ_imp_ncard_window (n := n) (hn := hn) (M := M) (s := s)
+      (hball := hball) with ⟨K, C, hCpos, hfreqL⟩
+
+  -- Define the density threshold.
+  refine ⟨(1 : ℝ) / ((C : ℝ) * (n : ℝ) ^ K), ?_, ?_⟩
+  · -- Positivity of ε.
+    have hnposNat : 0 < n := lt_of_lt_of_le (by decide : (0 : ℕ) < 2) hn
+    have hnposR : (0 : ℝ) < (n : ℝ) := by
+      exact_mod_cast hnposNat
+    have hCposR : (0 : ℝ) < (C : ℝ) := by
+      exact_mod_cast hCpos
+    have hpowpos : (0 : ℝ) < (n : ℝ) ^ K := pow_pos hnposR K
+    have hdenpos : (0 : ℝ) < (C : ℝ) * (n : ℝ) ^ K := mul_pos hCposR hpowpos
+    exact one_div_pos.2 hdenpos
+  · -- Show the density lower bound holds frequently.
+    have hL_forall :
+        ∀ a : ℕ,
+          ∃ L ≥ a,
+            ∃ r : ℕ, L ≤ r ∧ r ≤ L + K ∧ n ^ L ≤ C * Set.ncard (M ∩ Sphere n r) :=
+      (theorem5_frequently_atTop_iff
+            (p := fun L : ℕ =>
+              ∃ r : ℕ, L ≤ r ∧ r ≤ L + K ∧ n ^ L ≤ C * Set.ncard (M ∩ Sphere n r))).1
+        hfreqL
+
+    have hforall_r :
+        ∀ a : ℕ,
+          ∃ b ≥ a,
+            (1 : ℝ) / ((C : ℝ) * (n : ℝ) ^ K) ≤
+              ((Set.ncard (M ∩ Sphere n b) : ℝ) /
+                (Set.ncard (Sphere n b) : ℝ)) := by
+      intro a
+      rcases hL_forall a with ⟨L, hLa, r, hLr, hrLK, hcard⟩
+      have har : a ≤ r := le_trans hLa hLr
+      refine ⟨r, har, ?_⟩
+
+      -- Cast the window inequality to ℝ.
+      have hcardR : (n ^ L : ℝ) ≤ (C : ℝ) * (Set.ncard (M ∩ Sphere n r) : ℝ) := by
+        exact_mod_cast hcard
+
+      have hCposR : (0 : ℝ) < (C : ℝ) := by
+        exact_mod_cast hCpos
+
+      -- Divide by `C` to get a lower bound on the numerator.
+      have hdivC : (n ^ L : ℝ) / (C : ℝ) ≤ (Set.ncard (M ∩ Sphere n r) : ℝ) := by
+        have hcardR' : (n ^ L : ℝ) ≤ (Set.ncard (M ∩ Sphere n r) : ℝ) * (C : ℝ) := by
+          simpa [mul_comm, mul_left_comm, mul_assoc] using hcardR
+        exact (div_le_iff₀ hCposR).2 hcardR'
+
+      have hden_nonneg : (0 : ℝ) ≤ (Set.ncard (Sphere n r) : ℝ) := by
+        exact_mod_cast (Nat.zero_le (Set.ncard (Sphere n r)))
+
+      have hdiv_le :
+          ((n ^ L : ℝ) / (C : ℝ)) / (Set.ncard (Sphere n r) : ℝ) ≤
+            (Set.ncard (M ∩ Sphere n r) : ℝ) / (Set.ncard (Sphere n r) : ℝ) := by
+        -- Compare numerators after dividing by the nonnegative denominator.
+        simpa [div_eq_mul_inv, mul_assoc, mul_left_comm, mul_comm] using
+          (theorem5_div_le_div_of_le_of_nonneg
+              (a := (n ^ L : ℝ) / (C : ℝ))
+              (b := (Set.ncard (M ∩ Sphere n r) : ℝ))
+              (c := (Set.ncard (Sphere n r) : ℝ))
+              hden_nonneg hdivC)
+
+      -- Lower bound coming from `r ≤ L + K`.
+      have hsub_le : r - L ≤ K := by
+        exact Nat.sub_le_iff_le_add.2 (by
+          -- goal: r ≤ K + L
+          simpa [Nat.add_assoc, Nat.add_left_comm, Nat.add_comm] using hrLK)
+
+      have hn1_nat : 1 ≤ n := le_trans (by decide : (1 : ℕ) ≤ 2) hn
+      have hn1 : (1 : ℝ) ≤ (n : ℝ) := by
+        exact_mod_cast hn1_nat
+
+      have hεpow_le :
+          (1 : ℝ) / (n : ℝ) ^ K ≤ (1 : ℝ) / (n : ℝ) ^ (r - L) := by
+        simpa using
+          (one_div_pow_le_one_div_pow_of_le (a := (n : ℝ)) hn1 (m := r - L) (n := K) hsub_le)
+
+      have hratio :
+          (n ^ L : ℝ) / (Set.ncard (Sphere n r) : ℝ) = (1 : ℝ) / (n : ℝ) ^ (r - L) := by
+        have hSphere_r : Set.ncard (Sphere n r) = n ^ r := theorem5_ncard_Sphere n r
+        rw [hSphere_r]
+        have hnposNat : 0 < n := lt_of_lt_of_le (by decide : (0 : ℕ) < 2) hn
+        have hnposR : (0 : ℝ) < (n : ℝ) := by
+          exact_mod_cast hnposNat
+        have hn0 : (n : ℝ) ≠ 0 := ne_of_gt hnposR
+        have hL0 : (n : ℝ) ^ L ≠ 0 := pow_ne_zero L hn0
+        have hcast_pow_L : (n ^ L : ℝ) = (n : ℝ) ^ L := by
+          simpa using (Nat.cast_pow n L)
+        have hcast_pow_r : (n ^ r : ℝ) = (n : ℝ) ^ r := by
+          simpa using (Nat.cast_pow n r)
+        calc
+          (n ^ L : ℝ) / ((n ^ r : ℕ) : ℝ) = (n : ℝ) ^ L / (n : ℝ) ^ r := by
+            simp [hcast_pow_L, hcast_pow_r]
+          _ = (n : ℝ) ^ L / (n : ℝ) ^ (L + (r - L)) := by
+            have hdecomp : L + (r - L) = r := Nat.add_sub_of_le hLr
+            simpa [hdecomp]
+          _ = (n : ℝ) ^ L / ((n : ℝ) ^ L * (n : ℝ) ^ (r - L)) := by
+            simp [pow_add]
+          _ = (1 : ℝ) / (n : ℝ) ^ (r - L) := by
+            field_simp [hL0]
+
+      -- Convert the previous bound into one with the extra factor `C`.
+      have hCinv_nonneg : (0 : ℝ) ≤ (1 : ℝ) / (C : ℝ) := by
+        exact le_of_lt (one_div_pos.2 hCposR)
+
+      have hε_le_ratio0 :
+          (1 : ℝ) / (n : ℝ) ^ K ≤ (n ^ L : ℝ) / (Set.ncard (Sphere n r) : ℝ) := by
+        -- rewrite with the explicit ratio computed above
+        simpa [hratio] using hεpow_le
+
+      have hε_le_ratio :
+          (1 : ℝ) / ((C : ℝ) * (n : ℝ) ^ K) ≤
+            ((n ^ L : ℝ) / (C : ℝ)) / (Set.ncard (Sphere n r) : ℝ) := by
+        -- multiply the inequality `hε_le_ratio0` by `1/C`.
+        have hmul :=
+          mul_le_mul_of_nonneg_left hε_le_ratio0 hCinv_nonneg
+        simpa [div_eq_mul_inv, mul_assoc, mul_left_comm, mul_comm] using hmul
+
+      -- Combine: ε ≤ ratio ≤ density.
+      exact le_trans hε_le_ratio hdiv_le
+
+    -- Convert back to a `Frequently` statement.
+    have hfreq_r :=
+      (theorem5_frequently_atTop_iff
+          (p := fun r : ℕ =>
+            (1 : ℝ) / ((C : ℝ) * (n : ℝ) ^ K) ≤
+              ((Set.ncard (M ∩ Sphere n r) : ℝ) /
+                (Set.ncard (Sphere n r) : ℝ)))).2
+        hforall_r
+
+    simpa using hfreq_r
+
+theorem theorem5_ball_eq_univ_imp_density_not_tendsto (n : ℕ) (hn : 2 ≤ n)
+    (M : Set (FreeMonoid (Fin n))) (s : ℕ)
+    (hball : Ball s (M ∪ (A n)) = Set.univ) :
+    ¬ Tendsto
+        (fun r : ℕ =>
+          ((Set.ncard (M ∩ Sphere n r) : ℝ) / (Set.ncard (Sphere n r) : ℝ)))
+        atTop (nhds 0) := by
+  have hε :
+      ∃ ε : ℝ, 0 < ε ∧
+        (∃ᶠ r : ℕ in atTop,
+          ε ≤
+            ((Set.ncard (M ∩ Sphere n r) : ℝ) /
+              (Set.ncard (Sphere n r) : ℝ))) :=
+    theorem5_ball_eq_univ_imp_frequently_density_ge (n := n) (hn := hn) (M := M) (s := s) hball
+  exact
+    theorem5_not_tendsto_zero_of_exists_pos_frequently_ge
+      (f := fun r : ℕ =>
+        ((Set.ncard (M ∩ Sphere n r) : ℝ) / (Set.ncard (Sphere n r) : ℝ)))
+      hε
+
+theorem theorem5_eventually_bddAbove_expansionSet (n : ℕ) (hn : 2 ≤ n)
+    (M : Set (FreeMonoid (Fin n)))
+    (hMdens :
+      Tendsto
+        (fun r : ℕ =>
+          ((Set.ncard (M ∩ Sphere n r) : ℝ) / (Set.ncard (Sphere n r) : ℝ)))
+        atTop (nhds 0)) :
+    ∀ s : ℕ,
+      BddAbove { r : ℕ | Ball r (A n) ⊆ Ball s (M ∪ (A n)) } := by
+  classical
+  intro s
+  by_contra hnbdd
+  have hball : Ball s (M ∪ (A n)) = Set.univ :=
+    (theorem5_not_bddAbove_expansionSet_iff_ball_eq_univ (n := n) (M := M) (s := s)).1 hnbdd
+  have hnot :
+      ¬ Tendsto
+        (fun r : ℕ =>
+          ((Set.ncard (M ∩ Sphere n r) : ℝ) / (Set.ncard (Sphere n r) : ℝ)))
+        atTop (nhds 0) :=
+    theorem5_ball_eq_univ_imp_density_not_tendsto (n := n) (hn := hn) (M := M) (s := s) hball
+  exact hnot hMdens
+
+
+theorem theorem5_tendsto_pow_sqrt_div (K : ℕ) (hK : 0 < K) :
+  Tendsto (fun s : ℕ => 2 ^ (Nat.sqrt (s / K))) atTop atTop := by
+  classical
+  -- Step 1: division by a positive constant tends to infinity
+  have hK0 : K ≠ 0 := by
+    exact ne_of_gt hK
+  have hdiv : Tendsto (fun s : ℕ => s / K) atTop atTop := by
+    simpa using Nat.tendsto_div_const_atTop hK0
+
+  -- Step 2: `Nat.sqrt` tends to infinity
+  have hsqrt : Tendsto Nat.sqrt atTop atTop := by
+    refine Filter.tendsto_atTop_atTop_of_monotone ?mono ?unbdd
+    · intro a b hab
+      exact Nat.sqrt_le_sqrt hab
+    · intro b
+      refine ⟨b * b, ?_⟩
+      simpa [Nat.sqrt_eq] using (le_rfl : b ≤ b)
+
+  -- Step 3: compose
+  have hsqrt_div : Tendsto (fun s : ℕ => Nat.sqrt (s / K)) atTop atTop :=
+    hsqrt.comp hdiv
+
+  -- Step 4: powers of 2 tend to infinity
+  have hpow : Tendsto (fun n : ℕ => 2 ^ n) atTop atTop := by
+    simpa using
+      (Nat.tendsto_pow_atTop_atTop_of_one_lt (α := ℕ) (r := (2 : ℕ))
+        (by decide : (1 : ℕ) < (2 : ℕ)))
+
+  -- Step 5: final composition
+  exact hpow.comp hsqrt_div
+
+theorem theorem5_expansion_ge_pow_sqrt_div (n : ℕ) (hn : 2 ≤ n)
+    (M : Set (FreeMonoid (Fin n))) (K : ℕ)
+    (hK : 0 < K)
+    (hBall : ∀ᶠ r : ℕ in atTop,
+      Ball r (A n) ⊆ Ball (K * (Nat.log2 r) ^ 2) (M ∪ (A n)))
+    (hBdd : ∀ᶠ s : ℕ in atTop,
+      BddAbove { r : ℕ | Ball r (A n) ⊆ Ball s (M ∪ (A n)) }) :
+    ∀ᶠ s : ℕ in atTop,
+      (2 ^ (Nat.sqrt (s / K))) ≤ expansion (A n) (M ∪ (A n)) s := by
+  classical
+  -- Define the pulled-back radius
+  let r : ℕ → ℕ := fun s : ℕ => 2 ^ (Nat.sqrt (s / K))
+
+  have hr : Tendsto r atTop atTop := by
+    simpa [r] using theorem5_tendsto_pow_sqrt_div K hK
+
+  -- Pull back the `hBall` hypothesis along `r`.
+  have hBall_s : ∀ᶠ s : ℕ in atTop,
+      Ball (r s) (A n) ⊆ Ball (K * (Nat.log2 (r s)) ^ 2) (M ∪ (A n)) :=
+    (hr.eventually hBall)
+
+  -- Combine with the boundedness hypothesis.
+  filter_upwards [hBall_s, hBdd] with s hsBall hsBdd
+
+  -- Compute the log2 term.
+  have hlog : Nat.log2 (r s) = Nat.sqrt (s / K) := by
+    -- `r s = 2^(sqrt (s/K))`
+    dsimp [r]
+    -- use `Nat.log_pow` at base 2
+    simpa [Nat.log2_eq_log_two] using
+      (Nat.log_pow (b := 2) (hb := (by decide : 1 < 2)) (x := Nat.sqrt (s / K)))
+
+  -- Bound the intermediate radius by `s`.
+  have hKs : K * (Nat.sqrt (s / K)) ^ 2 ≤ s := by
+    have hsqrt : (Nat.sqrt (s / K)) ^ 2 ≤ s / K := Nat.sqrt_le' (s / K)
+    have hmul1 : K * (Nat.sqrt (s / K)) ^ 2 ≤ K * (s / K) := Nat.mul_le_mul_left K hsqrt
+    have hmul2 : K * (s / K) ≤ s := Nat.mul_div_le s K
+    exact le_trans hmul1 hmul2
+
+  -- Upgrade `hsBall` to a subset of `Ball s _`.
+  have hsBall' : Ball (r s) (A n) ⊆ Ball s (M ∪ (A n)) := by
+    have hsBall1 : Ball (r s) (A n) ⊆ Ball (K * (Nat.sqrt (s / K)) ^ 2) (M ∪ (A n)) := by
+      -- rewrite the log2 term
+      simpa [hlog] using hsBall
+    have hsBall2 : Ball (K * (Nat.sqrt (s / K)) ^ 2) (M ∪ (A n)) ⊆ Ball s (M ∪ (A n)) :=
+      theorem5_ball_mono_R (n := n) (X := (M ∪ (A n))) hKs
+    exact Set.Subset.trans hsBall1 hsBall2
+
+  -- Now `r s` is an element of the set whose `sSup` defines `expansion`.
+  have hr_mem : r s ∈ {t : ℕ | Ball t (A n) ⊆ Ball s (M ∪ (A n))} := by
+    exact hsBall'
+
+  have hle : r s ≤ sSup {t : ℕ | Ball t (A n) ⊆ Ball s (M ∪ (A n))} :=
+    le_csSup hsBdd hr_mem
+
+  -- Unfold `expansion`.
+  simpa [expansion, r] using hle
+
+theorem theorem5_help2_fixed (n : ℕ) (hn : 2 ≤ n)
+    (M : Set (FreeMonoid (Fin n))) (K : ℕ)
+    (hK : 0 < K)
+    (hBall : ∀ᶠ r : ℕ in atTop,
+      Ball r (A n) ⊆ Ball (K * (Nat.log2 r) ^ 2) (M ∪ (A n)))
+    (hBdd : ∀ᶠ s : ℕ in atTop,
+      BddAbove { r : ℕ | Ball r (A n) ⊆ Ball s (M ∪ (A n)) }) :
+    ∃ (c : ℝ), 0 < c ∧
+      (∀ᶠ s : ℕ in atTop,
+        Real.exp (c * Real.sqrt (s : ℝ)) ≤ expansion (A n) (M ∪ (A n)) s) := by
+  classical
+  rcases theorem5_eventually_exp_le_pow_sqrt_div K hK with ⟨c, hcpos, hcexp⟩
+  have hpow := theorem5_expansion_ge_pow_sqrt_div n hn M K hK hBall hBdd
+  refine ⟨c, hcpos, ?_⟩
+  have h := hcexp.and hpow
+  refine h.mono ?_
+  intro s hs
+  have hs' : (2 : ℝ) ^ (Nat.sqrt (s / K)) ≤ (expansion (A n) (M ∪ (A n)) s : ℝ) := by
+    exact_mod_cast hs.2
+  exact le_trans hs.1 hs'
+
+
+theorem theorem5_help1_fixed (n : ℕ) (hn : 2 ≤ n)
+    (M : Set (FreeMonoid (Fin n))) (K : ℕ)
+    (hK : 0 < K)
+    (hBall : ∀ᶠ r : ℕ in atTop,
+      Ball r (A n) ⊆ Ball (K * (Nat.log2 r) ^ 2) (M ∪ (A n)))
+    (hBdd : ∀ᶠ s : ℕ in atTop,
+      BddAbove { r : ℕ | Ball r (A n) ⊆ Ball s (M ∪ (A n)) }) :
+    Tendsto
+      (fun s : ℕ => ((expansion (A n) (M ∪ (A n)) s : ℝ) / (s : ℝ)))
+      atTop atTop := by
+  classical
+  rcases theorem5_help2_fixed n hn M K hK hBall hBdd with ⟨c, hcpos, hExp⟩
+  have hle :
+      (fun s : ℕ => Real.exp (c * Real.sqrt (s : ℝ)) / (s : ℝ))
+        ≤ᶠ[atTop]
+        fun s : ℕ => (expansion (A n) (M ∪ (A n)) s : ℝ) / (s : ℝ) := by
+    filter_upwards [hExp] with s hs
+    have hsnonneg : 0 ≤ (s : ℝ) := by
+      exact_mod_cast (Nat.zero_le s)
+    exact div_le_div_of_nonneg_right hs hsnonneg
+
+  have hsqrt : Tendsto (fun s : ℕ => Real.sqrt (s : ℝ)) atTop atTop := by
+    have hcast : Tendsto (fun s : ℕ => (s : ℝ)) atTop atTop := by
+      simpa using (tendsto_natCast_atTop_atTop (R := ℝ))
+    have hrpow : Tendsto (fun x : ℝ => x ^ (1 / (2 : ℝ))) atTop atTop := by
+      have hy : (0 : ℝ) < (1 / (2 : ℝ)) := by
+        norm_num
+      simpa using (tendsto_rpow_atTop (y := (1 / (2 : ℝ))) hy)
+    simpa [Real.sqrt_eq_rpow] using (hrpow.comp hcast)
+
+  have haux : Tendsto (fun x : ℝ => Real.exp (c * x) / (x ^ (2 : ℝ))) atTop atTop := by
+    simpa using (tendsto_exp_mul_div_rpow_atTop (s := (2 : ℝ)) (b := c) hcpos)
+
+  have haux2 : Tendsto (fun x : ℝ => Real.exp (c * x) / (x ^ 2)) atTop atTop := by
+    simpa [Real.rpow_two] using haux
+
+  have hg' :
+      Tendsto (fun s : ℕ => Real.exp (c * Real.sqrt (s : ℝ)) / (Real.sqrt (s : ℝ) ^ 2)) atTop atTop :=
+    haux2.comp hsqrt
+
+  have hg : Tendsto (fun s : ℕ => Real.exp (c * Real.sqrt (s : ℝ)) / (s : ℝ)) atTop atTop := by
+    have hEq :
+        (fun s : ℕ => Real.exp (c * Real.sqrt (s : ℝ)) / (s : ℝ)) =
+          fun s : ℕ => Real.exp (c * Real.sqrt (s : ℝ)) / (Real.sqrt (s : ℝ) ^ 2) := by
+      funext s
+      have hs : Real.sqrt (s : ℝ) ^ 2 = (s : ℝ) :=
+        Real.sq_sqrt (by positivity : (0 : ℝ) ≤ (s : ℝ))
+      simpa [hs]
+    simpa [hEq] using hg'
+
+  exact Filter.tendsto_atTop_mono' atTop hle hg
+
+theorem theorem5 (n : ℕ) (hn : 2 ≤ n) :
     ∃ M : Set (FreeMonoid (Fin n)),
       Tendsto
         (fun r : ℕ =>
@@ -3022,6 +4166,23 @@ theorem theorem5
         (∀ᶠ r : ℕ in atTop,
           Ball r (A n) ⊆ Ball (K * (Nat.log2 r) ^ 2) (M ∪ (A n)))
         ∧
-       (∀ᶠ s : ℕ in atTop,
-         (Real.exp (c * Real.sqrt (s : ℝ)) ≤ (expansion (A n) (M ∪ (A n)) s))) := by
- sorry
+        (∀ᶠ s : ℕ in atTop,
+          (Real.exp (c * Real.sqrt (s : ℝ)) ≤ (expansion (A n) (M ∪ (A n)) s))) := by
+  classical
+  rcases theorem5_simplification n hn with ⟨M, hMdens, ⟨K, hKpos, hBall⟩⟩
+  have hBdd : ∀ᶠ s : ℕ in atTop,
+      BddAbove { r : ℕ | Ball r (A n) ⊆ Ball s (M ∪ (A n)) } :=
+    Filter.Eventually.of_forall
+      (theorem5_eventually_bddAbove_expansionSet (n := n) (hn := hn) (M := M) hMdens)
+  have hGrow :
+      Tendsto
+        (fun s : ℕ => ((expansion (A n) (M ∪ (A n)) s : ℝ) / (s : ℝ)))
+        atTop atTop :=
+    theorem5_help1_fixed (n := n) (hn := hn) (M := M) (K := K) hKpos hBall hBdd
+  rcases
+      theorem5_help2_fixed (n := n) (hn := hn) (M := M) (K := K) hKpos hBall hBdd with
+    ⟨c, hcpos, hExp⟩
+  refine ⟨M, hMdens, hGrow, ?_⟩
+  refine ⟨K, c, ?_⟩
+  exact ⟨hKpos, hcpos, hBall, hExp⟩
+
