@@ -3021,8 +3021,141 @@ theorem theorem5_simplification (n : ℕ) (hn : 2 ≤ n) :
 --          (Real.exp (c * Real.sqrt (s : ℝ)) ≤ (expansion (A n) (M ∪ (A n)) s))) := by
 --   sorry
 
-theorem theorem5_alternative
-    (n : ℕ) (hn : 2 ≤ n) :
+theorem theorem5_ball_subset_ball_of_le_expansion (n : ℕ) (G G' : Set (FreeMonoid (Fin n))) (s r : ℕ) : r ≤ expansion (n := n) G G' s → Ball r G ⊆ Ball s G' := by
+  classical
+  intro hr
+  let S : Set ℕ := {t : ℕ | Ball t G ⊆ Ball s G'}
+
+  have hBall0_eq (m : FreeMonoid (Fin n)) : m ∈ Ball 0 G ↔ m = 1 := by
+    simp [free.Ball]
+
+  have hBall0 : Ball 0 G ⊆ Ball s G' := by
+    intro m hm
+    have hm1 : m = 1 := (hBall0_eq m).1 hm
+    subst hm1
+    refine ⟨[], ?_, ?_, ?_⟩
+    · simp
+    · intro x hx
+      simp at hx
+    · simp
+
+  have hSnonempty : S.Nonempty := by
+    refine ⟨0, ?_⟩
+    simpa [S] using hBall0
+
+  have hr' : r ≤ sSup S := by
+    simpa [expansion, S] using hr
+
+  by_cases hbdd : BddAbove S
+  ·
+    have hsSup_mem : sSup S ∈ S := Nat.sSup_mem hSnonempty hbdd
+    have hsSup : Ball (sSup S) G ⊆ Ball s G' := by
+      simpa [S] using hsSup_mem
+    have hmono : Ball r G ⊆ Ball (sSup S) G :=
+      theorem5_ball_mono_R (n := n) (R := r) (R' := sSup S) (X := G) hr'
+    exact hmono.trans hsSup
+  ·
+    have hSinfinite : S.Infinite := Set.infinite_of_not_bddAbove hbdd
+    have hsSup0 : sSup S = 0 := Set.Infinite.Nat.sSup_eq_zero hSinfinite
+    have hr0 : r = 0 := by
+      apply Nat.eq_zero_of_le_zero
+      simpa [hsSup0] using hr'
+    subst hr0
+    exact hBall0
+
+theorem theorem5_ball_exp_subset_ball_of_exp_le_expansion (n : ℕ) (M : Set (FreeMonoid (Fin n))) (c : ℝ) (s : ℕ) :
+  (Real.exp (c * Real.sqrt (s : ℝ)) ≤ (expansion (A n) (M ∪ (A n)) s : ℝ)) →
+    Ball (Int.toNat (Int.ceil (Real.exp (c * Real.sqrt (s : ℝ))))) (A n) ⊆
+      Ball s (M ∪ (A n)) := by
+  intro h
+  have hradNat : Nat.ceil (Real.exp (c * Real.sqrt (s : ℝ))) ≤ expansion (A n) (M ∪ (A n)) s := by
+    exact (Nat.ceil_le).2 (by simpa using h)
+  have hrad : Int.toNat (Int.ceil (Real.exp (c * Real.sqrt (s : ℝ)))) ≤ expansion (A n) (M ∪ (A n)) s := by
+    simpa [Int.ceil_toNat] using hradNat
+  exact theorem5_ball_subset_ball_of_le_expansion n (A n) (M ∪ (A n)) s (Int.toNat (Int.ceil (Real.exp (c * Real.sqrt (s : ℝ))))) hrad
+
+
+theorem theorem5_help2_density (n : ℕ) (hn : 2 ≤ n) (M : Set (FreeMonoid (Fin n)))
+  (hMdens : Tendsto
+    (fun r : ℕ =>
+      ((Set.ncard (M ∩ Sphere n r) : ℝ) / (Set.ncard (Sphere n r) : ℝ)))
+    atTop (nhds 0))
+  (K : ℕ) :
+  (0 < K ∧
+    (∀ᶠ r : ℕ in atTop,
+      Ball r (A n) ⊆ Ball (K * (Nat.log2 r) ^ 2) (M ∪ (A n)))) →
+    ∃ (c : ℝ), 0 < c ∧
+      (∀ᶠ s : ℕ in atTop,
+        Real.exp (c * Real.sqrt (s : ℝ)) ≤ (expansion (A n) (M ∪ (A n)) s : ℝ)) := by
+  -- This lemma is just a wrapper around the already-available theorem `theorem5_help2` from the prompt.
+  -- 
+  -- Key point: the density assumption `hMdens` is unused for the conclusion.
+  -- 
+  -- Lean sketch:
+  -- ```
+  -- intro hK
+  -- -- ignore hMdens
+  -- simpa using (theorem5_help2 n hn M K hK)
+  -- ```
+  -- (Or `exact theorem5_help2 n hn M K hK`.)
+  sorry
+
+theorem theorem5_le_expansion_of_ball_subset_of_bddAbove (n : ℕ) (G G' : Set (FreeMonoid (Fin n))) (s r : ℕ) :
+  BddAbove {t : ℕ | Ball t G ⊆ Ball s G'} →
+    (Ball r G ⊆ Ball s G') →
+      r ≤ expansion (n := n) G G' s := by
+  intro hbdd hr
+  have hr_mem : r ∈ {t : ℕ | Ball t G ⊆ Ball s G'} := by
+    exact hr
+  have hle : r ≤ sSup {t : ℕ | Ball t G ⊆ Ball s G'} := le_csSup hbdd hr_mem
+  simpa [expansion] using hle
+
+
+theorem theorem5_tendsto_expansion_div_of_eventually_exp_le (n : ℕ) (M : Set (FreeMonoid (Fin n))) (c : ℝ) :
+  0 < c →
+    (∀ᶠ s : ℕ in atTop,
+      Real.exp (c * Real.sqrt (s : ℝ)) ≤ (expansion (A n) (M ∪ (A n)) s : ℝ)) →
+      Tendsto
+        (fun s : ℕ =>
+          ((expansion (A n) (M ∪ (A n)) s : ℝ) / (s : ℝ)))
+        atTop atTop := by
+  intro hc hexp
+  -- First show that `exp(c*sqrt s)/s` tends to `+∞`.
+  have h₁ : Tendsto (fun s : ℕ => (Real.exp (c * Real.sqrt (s : ℝ)) : ℝ) / (s : ℝ)) atTop atTop := by
+    -- work in ℝ and compose with `x = sqrt s`
+    have hreal : Tendsto (fun x : ℝ => Real.exp (c * x) / x ^ (2 : ℝ)) atTop atTop :=
+      tendsto_exp_mul_div_rpow_atTop (s := (2 : ℝ)) (b := c) hc
+    -- `sqrt (s : ℝ)` tends to `+∞`
+    have hsqrt : Tendsto (fun s : ℕ => Real.sqrt (s : ℝ)) atTop atTop := by
+      -- use `sqrt x = x^(1/2)` and `tendsto_rpow_atTop`
+      have hcast : Tendsto (fun s : ℕ => (s : ℝ)) atTop atTop := by
+        simpa using (tendsto_natCast_atTop_atTop : Tendsto (fun s : ℕ => (s : ℝ)) atTop atTop)
+      -- rpow with exponent 1/2
+      have hrpow : Tendsto (fun x : ℝ => x ^ (1 / (2 : ℝ))) atTop atTop :=
+        tendsto_rpow_atTop (y := (1 / (2 : ℝ))) (by norm_num)
+      -- compose and rewrite
+      simpa [Real.sqrt_eq_rpow] using (hrpow.comp hcast)
+    -- compose
+    have hcomp : Tendsto (fun s : ℕ => Real.exp (c * Real.sqrt (s : ℝ)) / (Real.sqrt (s : ℝ)) ^ (2 : ℝ)) atTop atTop :=
+      hreal.comp hsqrt
+    -- rewrite `(sqrt s)^(2:ℝ) = s`
+    have hrewrite : (fun s : ℕ => Real.exp (c * Real.sqrt (s : ℝ)) / (Real.sqrt (s : ℝ)) ^ (2 : ℝ)) =
+        (fun s : ℕ => (Real.exp (c * Real.sqrt (s : ℝ)) : ℝ) / (s : ℝ)) := by
+      funext s
+      have hs0 : (0 : ℝ) ≤ (s : ℝ) := by exact_mod_cast (Nat.zero_le s)
+      -- simplify the denominator
+      simp [Real.rpow_two, Real.sq_sqrt hs0]
+    simpa [hrewrite] using hcomp
+  -- show eventual inequality after dividing by `s`
+  have hle : (fun s : ℕ => (Real.exp (c * Real.sqrt (s : ℝ)) : ℝ) / (s : ℝ)) ≤ᶠ[atTop]
+      (fun s : ℕ => (expansion (A n) (M ∪ (A n)) s : ℝ) / (s : ℝ)) := by
+    filter_upwards [hexp] with s hs
+    have hs0 : (0 : ℝ) ≤ (s : ℝ) := by exact_mod_cast (Nat.zero_le s)
+    exact div_le_div_of_nonneg_right hs hs0
+  -- conclude by monotonicity of `Tendsto` to `atTop`
+  exact Filter.tendsto_atTop_mono' atTop hle h₁
+
+theorem theorem5_alternative (n : ℕ) (hn : 2 ≤ n) :
     ∃ M : Set (FreeMonoid (Fin n)),
       Tendsto
         (fun r : ℕ =>
@@ -3040,4 +3173,31 @@ theorem theorem5_alternative
         ∧
        (∀ᶠ s : ℕ in atTop,
           (Ball (Int.toNat <| Int.ceil <| Real.exp (c * Real.sqrt (s : ℝ))) (A n) ⊆ (Ball s (M ∪ (A n))))) := by
-  sorry
+  classical
+  rcases theorem5_simplification n hn with ⟨M, hMdens, K, hKpos, hBall⟩
+  have hKK :
+      (0 < K ∧
+        (∀ᶠ r : ℕ in atTop,
+          Ball r (A n) ⊆ Ball (K * (Nat.log2 r) ^ 2) (M ∪ (A n)))) :=
+    ⟨hKpos, hBall⟩
+
+  rcases theorem5_help2_density n hn M hMdens K hKK with ⟨c, hcpos, hExpLe⟩
+
+  have hTend :
+      Tendsto
+        (fun s : ℕ =>
+          ((expansion (A n) (M ∪ (A n)) s : ℝ) / (s : ℝ)))
+        atTop atTop :=
+    theorem5_tendsto_expansion_div_of_eventually_exp_le n M c hcpos hExpLe
+
+  have hBallExp :
+      ∀ᶠ s : ℕ in atTop,
+        Ball (Int.toNat (Int.ceil (Real.exp (c * Real.sqrt (s : ℝ))))) (A n) ⊆
+          Ball s (M ∪ (A n)) :=
+    hExpLe.mono (fun s hs =>
+      theorem5_ball_exp_subset_ball_of_exp_le_expansion (n := n) (M := M) (c := c) (s := s) hs)
+
+  refine ⟨M, hMdens, hTend, ?_⟩
+  refine ⟨K, c, hKpos, hcpos, hBall, ?_⟩
+  exact hBallExp
+
